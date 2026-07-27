@@ -1,0 +1,124 @@
+Metodologia HTML =
+VAR CSS =
+    "<style>
+    *{box-sizing:border-box}
+    .met{font-family:Arial,sans-serif;background:#f4f6f5;color:#19231f;padding:24px;border-radius:12px}
+    .met h1,.met h2,.met h3,.met p{margin:0}
+    .ey{color:#92153f;font-size:10px;font-weight:700;letter-spacing:1.4px}
+    .hero{padding-bottom:20px;border-bottom:1px solid #dfe6e2}
+    .hero h1{font-size:28px;margin:7px 0 5px}
+    .hero p{font-size:12px;color:#69766f}
+    .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+    .tags span{background:#fff;border:1px solid #dfe6e2;border-radius:14px;padding:5px 9px;font-size:9px}
+    .msg{display:flex;gap:12px;background:linear-gradient(135deg,#6e102f,#92153f);color:#fff;padding:17px;border-radius:10px;margin:20px 0 28px}
+    .msg i{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff20;font-style:normal;font-weight:700}
+    .msg h2{font-size:14px}.msg p{font-size:10px;line-height:1.5;color:#f2dfe6;margin-top:4px}
+    .sec{margin-top:30px}.st{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+    .num{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#efe3e7;color:#92153f;font-size:10px;font-weight:700}
+    .st small{color:#92153f;font-size:8px;font-weight:700;letter-spacing:1.2px}.st h2{font-size:17px;margin-top:2px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+    .card{background:#fff;border:1px solid #dfe6e2;border-radius:9px;padding:15px}
+    .pill{display:inline-block;border-radius:10px;padding:4px 7px;background:#f1e3e8;color:#92153f;font-size:7px;font-weight:700}
+    .pill.green{background:#e4f2ec;color:#148665}
+    .card h3{font-size:13px;margin:8px 0 5px}.card>p{font-size:9px;line-height:1.5;color:#69766f}
+    .formula{background:#f2f4f3;border-radius:6px;padding:9px;margin:11px 0}
+    .formula span,.formula b{display:block}.formula span{font-size:7px;color:#69766f}.formula b{font-size:9px;margin-top:3px}
+    .card ul{padding-left:15px;margin:0;color:#69766f;font-size:8px;line-height:1.6}
+    .axis{display:grid;grid-template-columns:34px 1fr auto;gap:9px}
+    .letter{display:grid;place-items:center;width:32px;height:32px;border-radius:7px;background:#f1e3e8;color:#92153f;font-weight:700}
+    .axis small{font-size:7px;color:#92153f;font-weight:700;letter-spacing:1px}.axis h3{margin:2px 0;font-size:13px}
+    .max{font-size:8px;color:#92153f}.ranges{grid-column:1/-1;margin-top:5px}
+    .ranges div{display:grid;grid-template-columns:8px 1fr auto;gap:7px;border-top:1px solid #e3e8e5;padding:8px 0;font-size:8px}
+    .dot{width:6px;height:6px;border-radius:50%;margin-top:2px}.low{background:#c94c4c}.mid{background:#c68b26}.high{background:#148665}
+    .rule{display:flex;flex-wrap:wrap;gap:12px;background:#fff8e7;border:1px solid #ead8aa;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:8px;color:#756647}
+    .matrix-wrap{display:grid;grid-template-columns:1.6fr .7fr;gap:11px}
+    .matrix{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,78px);border-left:1px solid #bdc8c3;border-bottom:1px solid #bdc8c3}
+    .cell{padding:8px;border-right:3px solid #fff;border-bottom:3px solid #fff}
+    .cell b,.cell span{display:block}.cell b{font-size:8px}.cell span{font-size:7px;color:#69766f;margin-top:3px}
+    .g1{background:#edf5f1}.g2{background:#e4f1eb}.g3{background:#d5eae1}.n{background:#edf1ef}.a{background:#faf2e3}.r{background:#f8e7e7}
+    .note{background:#fff;border:1px solid #dfe6e2;border-radius:9px;padding:14px}
+    .note h3{font-size:12px}.note p{font-size:8px;line-height:1.5;color:#69766f;margin-top:8px}
+    .principles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .principles div{background:#fff;border:1px solid #dfe6e2;border-radius:8px;padding:11px}
+    .principles b{font-size:9px}.principles p{font-size:8px;line-height:1.45;color:#69766f;margin-top:4px}
+    .foot{display:flex;justify-content:space-between;border-top:1px solid #dfe6e2;margin-top:26px;padding-top:12px;font-size:8px;color:#69766f}
+    @media(max-width:700px){.grid2,.matrix-wrap{grid-template-columns:1fr}.principles{grid-template-columns:1fr 1fr}}
+    </style>"
+VAR HTML =
+    "<div class='met'>
+      <div class='hero'>
+        <div class='ey'>METODOLOGIA • NINE BOX</div>
+        <h1>Premissas dos indicadores</h1>
+        <p>Referência para interpretação dos resultados, dos eixos e do posicionamento na matriz.</p>
+        <div class='tags'><span>Posição oficial: YTD</span><span>Leitura complementar: mensal</span><span>Atualização: fechamento mensal</span></div>
+      </div>
+
+      <div class='msg'><i>i</i><div><h2>Mensagem central</h2><p>O <b>YTD define a posição oficial</b>, enquanto a tendência mensal indica a urgência, o risco e a oportunidade de atuação.</p></div></div>
+
+      <section class='sec'>
+        <div class='st'><span class='num'>01</span><div><small>VISÃO TEMPORAL</small><h2>Resultado acumulado e mensal</h2></div></div>
+        <div class='grid2'>
+          <article class='card'>
+            <span class='pill'>OFICIAL</span><h3>Resultado YTD</h3>
+            <p>Resultado acumulado de janeiro até o mês selecionado. Determina o posicionamento oficial na Nine Box.</p>
+            <div class='formula'><span>Atingimento YTD</span><b>Realizado acumulado ÷ Meta acumulada</b></div>
+            <ul><li>Não utiliza média simples dos percentuais mensais.</li><li>Reduz o impacto de oscilações pontuais.</li><li>Orienta ranking e avaliação consolidada.</li></ul>
+          </article>
+          <article class='card'>
+            <span class='pill green'>EXPLICATIVO</span><h3>Resultado mensal</h3>
+            <p>Mostra a entrega isolada de cada mês e explica como o avaliado chegou à posição acumulada.</p>
+            <div class='formula'><span>Atingimento mensal</span><b>Realizado do mês ÷ Meta do mês</b></div>
+            <ul><li>Identifica recuperação ou deterioração.</li><li>Avalia consistência e volatilidade.</li><li>Antecipa possíveis mudanças no YTD.</li></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class='sec'>
+        <div class='st'><span class='num'>02</span><div><small>POSICIONAMENTO</small><h2>Eixos da Nine Box</h2></div></div>
+        <div class='grid2'>
+          <article class='card axis'>
+            <span class='letter'>X</span><div><small>EIXO HORIZONTAL</small><h3>Resultados</h3><p>Consolida as competências relacionadas à entrega.</p></div><b class='max'>Máximo: 75</b>
+            <div class='ranges'><div><i class='dot low'></i><span>Baixo</span><b>Abaixo de 60</b></div><div><i class='dot mid'></i><span>Médio</span><b>60 até 71,25</b></div><div><i class='dot high'></i><span>Alto</span><b>Acima de 71,25</b></div></div>
+          </article>
+          <article class='card axis'>
+            <span class='letter'>Y</span><div><small>EIXO VERTICAL</small><h3>Consistência</h3><p>Representa a consistência da entrega.</p></div><b class='max'>Máximo: 25</b>
+            <div class='ranges'><div><i class='dot low'></i><span>Baixa</span><b>Abaixo de 20</b></div><div><i class='dot mid'></i><span>Média</span><b>20 até 23,75</b></div><div><i class='dot high'></i><span>Alta</span><b>Acima de 23,75</b></div></div>
+          </article>
+        </div>
+        <div class='rule'><b>Regra das faixas</b><span>Baixa: abaixo de 80%</span><span>Média: de 80% até 95%</span><span>Alta: acima de 95%</span></div>
+      </section>
+
+      <section class='sec'>
+        <div class='st'><span class='num'>03</span><div><small>MATRIZ</small><h2>Distribuição dos quadrantes</h2></div></div>
+        <div class='matrix-wrap'>
+          <div class='matrix'>
+            <div class='cell g1'><b>Potencial oculto</b><span>Baixo resultado • Alta consistência</span></div>
+            <div class='cell g2'><b>Performance equilibrada</b><span>Médio resultado • Alta consistência</span></div>
+            <div class='cell g3'><b>Referência</b><span>Alto resultado • Alta consistência</span></div>
+            <div class='cell a'><b>Atenção ao resultado</b><span>Baixo resultado • Média consistência</span></div>
+            <div class='cell n'><b>Consistente</b><span>Médio resultado • Média consistência</span></div>
+            <div class='cell g2'><b>Alta entrega</b><span>Alto resultado • Média consistência</span></div>
+            <div class='cell r'><b>Crítico</b><span>Baixo resultado • Baixa consistência</span></div>
+            <div class='cell a'><b>Foco em evolução</b><span>Médio resultado • Baixa consistência</span></div>
+            <div class='cell r'><b>Consistência em risco</b><span>Alto resultado • Baixa consistência</span></div>
+          </div>
+          <aside class='note'><h3>Representação visual</h3><p>Os nove quadrantes possuem <b>dimensões iguais</b>, independentemente da amplitude numérica das faixas.</p><p>O ponto é normalizado dentro da faixa correspondente, sem alterar sua classificação.</p></aside>
+        </div>
+      </section>
+
+      <section class='sec'>
+        <div class='st'><span class='num'>04</span><div><small>INTERPRETAÇÃO</small><h2>Regras de leitura</h2></div></div>
+        <div class='principles'>
+          <div><b>Posição atual</b><p>A classificação oficial utiliza os scores YTD.</p></div>
+          <div><b>Tendência recente</b><p>O mensal indica recuperação, estabilidade ou queda.</p></div>
+          <div><b>Movimentação</b><p>Compara o YTD atual com o fechamento anterior.</p></div>
+          <div><b>Causa</b><p>As competências explicam a evolução ou deterioração.</p></div>
+          <div><b>Prioridade</b><p>Posição, tendência e distância orientam a ação.</p></div>
+          <div><b>Qualidade</b><p>Inconsistências e histórico insuficiente são sinalizados.</p></div>
+        </div>
+      </section>
+
+      <div class='foot'><span>Metodologia Nine Box • Conteúdo informativo</span><span>Resultados: 75 pontos • Consistência: 25 pontos</span></div>
+    </div>"
+RETURN
+    CSS & HTML
