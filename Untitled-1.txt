@@ -1,0 +1,1352 @@
+-- =====================================================================
+-- Painel de Gestao — MODELO DE DADOS
+-- Alvo: MariaDB 10.1 (XAMPP). SEM window functions, SEM CTE.
+-- ---------------------------------------------------------------------
+-- Principio: separar o que MUDA do que NAO MUDA.
+--
+--   dimensao  -> descreve (quem, onde, o que). Poucas linhas, texto.
+--   fato      -> mede (quanto). Muitas linhas, so numero e chave.
+--
+-- Dimensoes sao LARGAS de proposito: o nome mora junto com o id, para
+-- nao existirem dezenas de tabelinhas de duas colunas. Essa e a pratica
+-- padrao de data warehouse (esquema estrela). A economia de repetir id em
+-- vez de nome vale para os FATOS, que tem milhoes de linhas -- nao para
+-- dimensoes, que tem milhares.
+--
+-- ESTE ARQUIVO E IDEMPOTENTE: usa CREATE TABLE IF NOT EXISTS e nao apaga
+-- nada. Rodar de novo para acrescentar uma tabela e seguro. Para zerar a
+-- base use database/reset.sql, que e uma acao separada e explicita.
+--
+-- ENCARTEIRAMENTO NAO TEM DATA, por decisao de projeto: a aplicacao mostra
+-- a FOTO ATUAL da carteira. Se o cliente muda de agencia, ele muda de
+-- carteira e a meta acompanha. E painel de gestao de carteira, nao livro
+-- contabil -- o historico de "de quem era em janeiro" nao e o objetivo.
+-- =====================================================================
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE DATABASE IF NOT EXISTS painel_gestao
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE painel_gestao;
+
+
+
+
+-- #####################################################################
+-- 1. CALENDARIO — grao DIARIO
+-- ---------------------------------------------------------------------
+-- Diario porque "e sabado?" e "e feriado?" nao existem num mes. O mes fica
+-- como coluna (anomes), entao fato mensal continua ligando por ela
+-- normalmente, sem precisar de duas tabelas de tempo.
+--
+-- qtd_dias_uteis_mes e dia_util_do_mes vem prontos: sao o tipo de conta
+-- que todo relatorio refaz (projecao de fechamento, media diaria) e que
+-- ninguem quer recalcular em cada consulta.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_calendario (
+  data              DATE              NOT NULL,
+  anomes            INT UNSIGNED      NOT NULL,
+  ano               SMALLINT UNSIGNED NOT NULL,
+  mes               TINYINT UNSIGNED  NOT NULL,
+  dia               TINYINT UNSIGNED  NOT NULL,
+  trimestre         TINYINT UNSIGNED  NOT NULL,
+  semestre          TINYINT UNSIGNED  NOT NULL,
+  mes_abrev         VARCHAR(3)        NOT NULL,
+  rotulo_mes        VARCHAR(10)       NOT NULL,   -- 'set/25'
+  dia_semana        TINYINT UNSIGNED  NOT NULL,   -- 1=domingo .. 7=sabado
+  nome_dia_semana   VARCHAR(13)       NOT NULL,
+  fim_de_semana     ENUM('S','N')     NOT NULL DEFAULT 'N',
+  feriado           ENUM('S','N')     NOT NULL DEFAULT 'N',
+  nome_feriado      VARCHAR(40)       NULL,
+  dia_util          ENUM('S','N')     NOT NULL DEFAULT 'S',
+  dia_util_do_mes   TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  qtd_dias_uteis_mes TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ultimo_dia_util_mes ENUM('S','N')   NOT NULL DEFAULT 'N',
+  PRIMARY KEY (data),
+  KEY ix_cal_anomes (anomes, data),
+  KEY ix_cal_util (dia_util, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 2. CLIENTE — grao CONTA
+-- ---------------------------------------------------------------------
+-- Cada linha e uma CONTA, nao uma empresa. O mesmo CNPJ aparece em varias
+-- linhas quando tem varias contas, e cada conta pode ter grupo economico e
+-- segmento diferentes.
+--
+-- Os campos da EMPRESA (razao social, CNAE, data de abertura, maior
+-- subsegmento) ficam repetidos nas contas do mesmo CNPJ. Isso e proposital
+-- -- evita uma tabela a mais e uma juncao. O cuidado que isso exige: a
+-- carga tem que atualizar por CNPJ, nunca conta isolada, senao o mesmo
+-- CNPJ acaba com dois CNAEs diferentes e ninguem percebe.
+--
+-- maior_subsegmento_ajustado e o caso mais claro disso: ele e calculado
+-- olhando TODAS as contas do CNPJ, entao e dado da empresa morando na
+-- conta.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_cliente (
+  id_cliente        INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  conta             VARCHAR(20)   NOT NULL,
+  cnpj_corpo        VARCHAR(8)    NOT NULL,   -- raiz do CNPJ (a empresa)
+  cnpj_completo     VARCHAR(14)   NOT NULL,   -- com filial e digitos
+  razao_social      VARCHAR(120)  NOT NULL,
+  tipo_pessoa       ENUM('PF','PJ') NOT NULL DEFAULT 'PJ',
+
+  -- risco (foto atual)
+  rating            VARCHAR(4)    NOT NULL DEFAULT 'B',
+  rating_ordem      TINYINT UNSIGNED NOT NULL DEFAULT 3,   -- 1=AA .. 9=H
+  rating_faixa      ENUM('BAIXO','MEDIO','ALTO','CRITICO') NOT NULL DEFAULT 'BAIXO',
+  pdd_percentual    DECIMAL(6,4)  NOT NULL DEFAULT 0.0000,
+  grau_restricao    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  situacao_receita  VARCHAR(30)   NOT NULL DEFAULT 'ATIVA',
+  -- Situacao da CONTA no banco (nao confundir com situacao na Receita).
+  --
+  -- QUEM E CLIENTE: ativo, paralisado, reativado E INATIVO. Inativo e
+  -- cliente parado, nao cliente que foi embora -- e sao 40% da base, o
+  -- maior grupo de todos. Trata-lo como saida jogava fora quase metade
+  -- da carteira e transformava "cliente quieto" em "cliente perdido".
+  -- So CANCELADO sai, e a saida tem data (data_encerramento abaixo).
+  status_conta      ENUM('ATIVO','PARALISADO','REATIVADO','INATIVO','CANCELADO')
+                                  NOT NULL DEFAULT 'ATIVO',
+  -- Perfil de elegibilidade: cnae_secao x segmento x nivel. Ver dim_perfil.
+  id_perfil         SMALLINT UNSIGNED NULL,
+
+  -- grupo economico: e da CONTA, nao do CNPJ (contas do mesmo CNPJ podem
+  -- estar em grupos diferentes)
+  id_grupo_economico   INT UNSIGNED NULL,
+  nome_grupo_economico VARCHAR(80)  NULL,
+
+  -- classificacao
+  maior_subsegmento_ajustado VARCHAR(40) NOT NULL DEFAULT '',
+  cluster           VARCHAR(40)   NOT NULL DEFAULT '',
+  -- MEI tem nivel proprio: nao e Negocios pequeno, e outro segmento.
+  nivel             ENUM('MEI','N1','N2','EMP1','EMP2') NOT NULL DEFAULT 'N1',
+
+  -- atividade economica (da empresa)
+  cnae_codigo       VARCHAR(10)   NULL,
+  cnae_secao        VARCHAR(60)   NULL,
+  cnae_descricao    VARCHAR(120)  NULL,
+
+  data_abertura_conta   DATE      NOT NULL,
+  /* Quando a conta SAIU da carteira. NULL = ainda esta la.
+     Preenchida so para CANCELADO -- e o unico status que e saida.
+
+     Existe porque sem ela nao havia como dizer QUANDO alguem saiu: o
+     cadastro guardava um status e mais nada, entao o churn so podia ser
+     um acumulado desde sempre ("X contas encerradas"), nunca uma taxa
+     do mes. E era ela que faltava para a carteira variar de tamanho de
+     um mes para o outro. */
+  data_encerramento     DATE      NULL,
+  data_abertura_empresa DATE      NULL,
+
+  PRIMARY KEY (id_cliente),
+  UNIQUE KEY uq_cliente_conta (conta),
+  KEY ix_cli_cnpj (cnpj_corpo),
+  KEY ix_cli_grupo (id_grupo_economico),
+  KEY ix_cli_rating (rating_ordem),
+  KEY ix_cli_nivel (nivel),
+  KEY ix_cli_cnae (cnae_codigo),
+  KEY ix_cli_status (status_conta),
+  KEY ix_cli_perfil (id_perfil)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 3. ENCARTEIRAMENTO — grao CONTA, foto ATUAL
+-- ---------------------------------------------------------------------
+-- Onde cada conta esta hoje, com a hierarquia inteira lado a lado.
+--
+-- Hierarquia achatada (uma coluna por nivel) em vez de arvore: como a
+-- sequencia e SEMPRE a mesma -- Departamento > Diretoria > Regional >
+-- Agencia > Posto > Gerente de gestao > Gerente de contas -- "tudo abaixo
+-- da regional 7" vira WHERE id_regional = 7, sem juncao nenhuma. Arvore so
+-- se justifica quando a profundidade varia.
+--
+-- SEM anomes, por decisao de projeto: a tela mostra a carteira atual.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_encarteiramento (
+  conta             VARCHAR(20)   NOT NULL,
+  cnpj_corpo        VARCHAR(8)    NOT NULL,
+  cnpj_completo     VARCHAR(14)   NOT NULL,
+
+  id_segmento       TINYINT UNSIGNED  NOT NULL,
+  nome_segmento     VARCHAR(30)       NOT NULL,
+  -- Digital = cliente sem agencia fisica, atendido so por gerente digital.
+  -- E um corte DENTRO de cada segmento, nao um segmento a parte.
+  digital           ENUM('S','N')     NOT NULL DEFAULT 'N',
+
+  id_departamento   TINYINT UNSIGNED  NOT NULL,
+  nome_departamento VARCHAR(60)       NOT NULL,
+  id_diretoria      TINYINT UNSIGNED  NOT NULL,
+  nome_diretoria    VARCHAR(60)       NOT NULL,
+  id_regional       SMALLINT UNSIGNED NOT NULL,
+  nome_regional     VARCHAR(60)       NOT NULL,
+  id_agencia        SMALLINT UNSIGNED NOT NULL,
+  nome_agencia      VARCHAR(80)       NOT NULL,
+  id_posto          SMALLINT UNSIGNED NULL,
+  nome_posto        VARCHAR(80)       NULL,
+  plataforma        VARCHAR(40)       NULL,
+
+  funcional_gerente_agencia VARCHAR(12) NULL,
+  nome_gerente_agencia      VARCHAR(80) NULL,
+  funcional_gerente_gestao  VARCHAR(12) NULL,
+  nome_gerente_gestao       VARCHAR(80) NULL,
+  funcional_gerente_conta   VARCHAR(12) NULL,
+  nome_gerente_conta        VARCHAR(80) NULL,
+  -- nivel do gerente de contas (EMP1/EMP2/N1/N2) vem junto em vez de uma
+  -- tabela de duas colunas: tabela que so acrescenta uma coluna a outra
+  -- custa uma juncao e nao devolve nada.
+  nivel_gerente_conta       ENUM('MEI','N1','N2','EMP1','EMP2') NULL,
+
+  PRIMARY KEY (conta),
+  KEY ix_enc_dir  (id_diretoria, id_regional, id_agencia),
+  KEY ix_enc_reg  (id_regional, id_agencia),
+  KEY ix_enc_ag   (id_agencia),
+  KEY ix_enc_posto (id_posto),
+  KEY ix_enc_gconta (funcional_gerente_conta),
+  KEY ix_enc_ggestao (funcional_gerente_gestao),
+  -- cobre o nome: o DISTINCT de segmentos nao toca a tabela
+  KEY ix_enc_seg  (id_segmento, nome_segmento),
+  KEY ix_enc_digital (digital, id_segmento),
+  KEY ix_enc_cnpj (cnpj_corpo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 4. PRODUTO — grao SUBPRODUTO, hierarquia de tres niveis
+-- ---------------------------------------------------------------------
+-- macro > produto > subproduto, tudo na mesma tabela. O nome do macro se
+-- repete em cada subproduto e isso e CORRETO aqui: sao poucas centenas de
+-- linhas, e a juncao que "economizaria" a repeticao custa mais do que a
+-- repeticao. Normalizar tabela pequena e otimizacao que so atrapalha.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_produto (
+  id_subproduto     SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome_subproduto   VARCHAR(60)       NOT NULL,
+  id_produto        SMALLINT UNSIGNED NOT NULL,
+  nome_produto      VARCHAR(60)       NOT NULL,
+  id_produto_macro  TINYINT UNSIGNED  NOT NULL,
+  nome_produto_macro VARCHAR(40)      NOT NULL,
+  ordem             SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (id_subproduto),
+  KEY ix_prod_produto (id_produto),
+  KEY ix_prod_macro (id_produto_macro)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 5. CANAL
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_canal (
+  id_canal TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome     VARCHAR(40)      NOT NULL,
+  tipo     ENUM('FISICO','DIGITAL') NOT NULL DEFAULT 'FISICO',
+  ordem    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (id_canal)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- CONTROLE DE CARGA
+-- Guarda quando cada tabela foi reconstruida. A aplicacao usa 'versao' na
+-- chave de cache: recarregar os dados invalida o cache de todo mundo de
+-- uma vez, sem precisar varrer nada.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS etl_controle (
+  tabela        VARCHAR(40)     NOT NULL,
+  versao        BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  linhas        INT UNSIGNED    NOT NULL DEFAULT 0,
+  duracao_ms    INT UNSIGNED    NOT NULL DEFAULT 0,
+  atualizado_em DATETIME        NOT NULL,
+  PRIMARY KEY (tabela)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- #####################################################################
+-- 6. USUARIO — quem entra na aplicacao e o que ele pode ver
+-- ---------------------------------------------------------------------
+-- O usuario e identificado por funcional OU e-mail no login, e esta tabela
+-- diz em que degrau da hierarquia ele esta.
+--
+-- 'nivel' sozinho NAO basta: saber que alguem e "nivel regional" nao diz
+-- QUAL regional. Por isso as colunas de escopo abaixo. A regra de leitura
+-- fica: o usuario ve o no dele e tudo que esta abaixo.
+--
+--   DEPARTAMENTO -> ve tudo, todas as colunas de escopo ficam nulas
+--   DIRETORIA    -> id_diretoria preenchido
+--   REGIONAL     -> id_regional preenchido
+--   AGENCIA      -> id_agencia preenchido
+--   GESTAO       -> funcional casa com funcional_gerente_gestao
+--   CONTA        -> funcional casa com funcional_gerente_conta
+--   ASSISTENTE   -> funcional_supervisor aponta para o gerente que apoia
+--
+-- funcional_l e a mesma matricula com a primeira casa trocada por letra
+-- (a=1, b=2 ... i=9): 9437643 -> I437643. Fica gravada porque sistemas
+-- diferentes do banco usam formatos diferentes, e converter na consulta
+-- impediria o indice de funcionar.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_usuario (
+  id_usuario   INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  funcional    VARCHAR(12)       NOT NULL,
+  funcional_l  VARCHAR(12)       NOT NULL,
+  nome         VARCHAR(80)       NOT NULL,
+  email        VARCHAR(120)      NOT NULL,
+  nivel        ENUM('DEPARTAMENTO','DIRETORIA','REGIONAL','AGENCIA',
+                    'GESTAO','CONTA','ASSISTENTE') NOT NULL,
+  -- escopo: qual unidade ele enxerga (nulo = herda do nivel acima)
+  id_diretoria SMALLINT UNSIGNED NULL,
+  id_regional  SMALLINT UNSIGNED NULL,
+  id_agencia   SMALLINT UNSIGNED NULL,
+  id_posto     SMALLINT UNSIGNED NULL,
+  funcional_supervisor VARCHAR(12) NULL,
+  ativo        TINYINT(1)        NOT NULL DEFAULT 1,
+  PRIMARY KEY (id_usuario),
+  UNIQUE KEY uq_usuario_funcional (funcional),
+  UNIQUE KEY uq_usuario_funcional_l (funcional_l),
+  UNIQUE KEY uq_usuario_email (email),
+  KEY ix_usuario_nivel (nivel),
+  KEY ix_usuario_escopo (id_diretoria, id_regional, id_agencia)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 7. ELEGIBILIDADE DE PRODUTO — as regras do IAP
+-- ---------------------------------------------------------------------
+-- O IAP divide o que a conta TEM pelo que ela PODERIA ter. A parte dificil
+-- e o denominador: condominio nao contrata maquininha, entao maquininha
+-- nao pode entrar na conta dele.
+--
+-- As regras moram AQUI, numa tabela pequena que a area de negocio edita
+-- sem programador. A carga aplica uma vez e grava o resultado ja resolvido
+-- em fato_iap. A tela nunca ve regra -- ela so divide "sim" por "total".
+--
+-- Como funciona: todo subproduto e elegivel por padrao. Cada linha desta
+-- tabela EXCLUI um subproduto para um recorte (secao CNAE, segmento ou
+-- nivel). Regra de excecao e mais curta e mais facil de auditar do que
+-- listar tudo que e permitido.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_elegibilidade (
+  id_regra      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  id_subproduto SMALLINT UNSIGNED NOT NULL,
+  criterio      ENUM('CNAE_SECAO','CNAE_CODIGO','SEGMENTO','NIVEL') NOT NULL,
+  valor         VARCHAR(60)       NOT NULL,
+  elegivel      ENUM('S','N')     NOT NULL DEFAULT 'N',
+  motivo        VARCHAR(120)      NULL,
+  PRIMARY KEY (id_regra),
+  KEY ix_eleg_sub (id_subproduto),
+  KEY ix_eleg_criterio (criterio, valor)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 7b. PERFIL DE ELEGIBILIDADE
+-- ---------------------------------------------------------------------
+-- A elegibilidade nao depende do cliente: depende do PERFIL dele
+-- (secao CNAE x segmento x nivel). Sao ~220 combinacoes possiveis, nao
+-- 1,7 milhao de clientes.
+--
+-- Guardar a lista de elegiveis por CLIENTE, todo mes, repetiria a mesma
+-- informacao milhoes de vezes: 42 milhoes de linhas/mes, 60 GB em doze
+-- meses. Guardando por PERFIL sao 5.500 linhas FIXAS, e o fato passa a
+-- gravar so o que o cliente TEM.
+--
+-- IAP = contratados / qtd_elegiveis_do_perfil. A analise de lacuna
+-- ("quais elegiveis faltam") sai por subtracao, sem perder nada.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS dim_perfil (
+  id_perfil      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  cnae_secao     VARCHAR(60)       NOT NULL,
+  nome_segmento  VARCHAR(30)       NOT NULL,
+  nivel          ENUM('MEI','N1','N2','EMP1','EMP2') NOT NULL,
+  digital        ENUM('S','N')     NOT NULL DEFAULT 'N',
+  qtd_elegiveis  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (id_perfil),
+  UNIQUE KEY uq_perfil (cnae_secao, nome_segmento, nivel, digital)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS dim_perfil_produto (
+  id_perfil     SMALLINT UNSIGNED NOT NULL,
+  id_subproduto SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (id_perfil, id_subproduto),
+  KEY ix_pp_sub (id_subproduto)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 8. FATOS
+-- ---------------------------------------------------------------------
+-- Todos seguem o mesmo desenho:
+--
+--   * so CONTA identifica o cliente. Agencia, regional, gerente e segmento
+--     vem de dim_encarteiramento na leitura. Gravar a agencia aqui criaria
+--     uma segunda verdade: a tela diria a agencia atual e o fato a antiga.
+--
+--   * data E anomes juntos. data e a referencia (ultimo dia do mes);
+--     anomes existe para agrupar por mes sem calcular funcao em cada
+--     linha -- funcao sobre coluna indexada faz o indice parar de servir.
+--
+--   * anomes na frente da chave primaria: como todo filtro comeca por
+--     periodo, a leitura vira varredura de faixa contigua.
+-- #####################################################################
+
+-- GDAD: demonstrativo de resultado por LINHA DE PRODUTO.
+--
+-- Formato LARGO (uma coluna por metrica), nao comprido (uma linha por
+-- metrica com um campo valor). Sao linhas contabeis fixas -- ROB, RENC,
+-- faturamento -- nao um conjunto que cresce sozinho. Largo da 8x menos
+-- linhas e transforma "somar o ROB" em SUM(rob), sem filtrar metrica.
+-- Se o extrator de origem entregar comprido, a carga gira na entrada: o
+-- giro acontece 1x por mes, nao em toda consulta da tela.
+--
+-- Grao: conta x PRODUTO (nivel do meio da hierarquia), nao subproduto --
+-- GDAD e resultado por linha de produto. fato_iap fica no subproduto
+-- porque penetracao se mede no item contratado. Graos diferentes em fatos
+-- diferentes e normal; o que nao pode e o mesmo fato ter dois graos.
+CREATE TABLE IF NOT EXISTS fato_gdad (
+  anomes              INT UNSIGNED      NOT NULL,
+  data                DATE              NOT NULL,
+  conta               VARCHAR(20)       NOT NULL,
+  id_produto          SMALLINT UNSIGNED NOT NULL,
+  -- volumes
+  captacao            DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  aplicacao           DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  -- receitas
+  receita_servicos    DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  receita_ligadas     DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  rob                 DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  renc                DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  -- faturamento
+  faturamento_bruto   DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  faturamento_liquido DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  /* ------------------------------------------------------------------
+     RESULTADO, SALDO MEDIO e RAR -- os tres vem PRONTOS do extrato.
+
+     saldo_medio e o saldo medio do mes, e nao a foto do fechamento
+     (captacao + aplicacao). E o denominador certo de qualquer taxa de
+     rentabilidade: dividir o resultado do mes por um saldo de um dia so
+     mede o dia, nao o mes.
+
+     spread NAO e coluna: e resultado / saldo_medio, calculado na leitura
+     (CarteiraRepo::derivar). Guardar uma razao pronta no grao fino seria
+     guardar um numero que nao pode ser somado -- a razao de um no nao e
+     a soma das razoes dos filhos.
+
+     rar_valor e o RAR em REAIS, e nao em percentual, pela mesma razao:
+     percentual nao agrega. Se a area entregar o RAR ja em %, e o ETL
+     que multiplica pelo saldo medio da linha na entrada -- do contrario
+     o RAR de uma agencia seria a media aritmetica das contas dela, que
+     nao e o RAR da agencia.
+     ------------------------------------------------------------------ */
+  resultado           DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  saldo_medio         DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  rar_valor           DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (anomes, conta, id_produto),
+  KEY ix_gdad_conta (conta, anomes),
+  KEY ix_gdad_prod (id_produto, anomes),
+  KEY ix_gdad_data (data)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- IAP: uma linha por subproduto que a conta REALMENTE POSSUI.
+--
+-- Mudou de desenho por causa do volume: guardar tambem as elegiveis nao
+-- contratadas custava 42 mi de linhas/mes (60 GB em 12 meses), e 62%
+-- delas so diziam "nao tem" -- repetindo a mesma lista de elegibilidade
+-- 1,7 milhao de vezes por mes.
+--
+-- Agora o denominador vem de dim_perfil.qtd_elegiveis:
+--   IAP = COUNT(*) / SUM(qtd_elegiveis)
+-- Continua uma varredura so, sem regra na consulta, e cabe em disco.
+CREATE TABLE IF NOT EXISTS fato_iap (
+  anomes        INT UNSIGNED      NOT NULL,
+  data          DATE              NOT NULL,
+  conta         VARCHAR(20)       NOT NULL,
+  id_subproduto SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (anomes, conta, id_subproduto),
+  KEY ix_iap_conta (conta, anomes),
+  KEY ix_iap_sub (id_subproduto, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- CONECTA: o programa de relacionamento. Numeros chegam prontos da origem.
+-- ---------------------------------------------------------------------
+-- DA QUANTIDADE DE MEDALHA VEM O NIVEL. Sao tres medalhas, cada uma de
+-- uma natureza, e o nivel e quantas delas o cliente tem:
+--
+--   1 medalha  -> Nivel 1
+--   2 medalhas -> Nivel 2
+--   3 medalhas -> VIP
+--
+-- As tres naturezas:
+--   CASH     50% do faturamento do cliente passando pelo banco
+--   RISCO    35% do credito que ele tem no mercado sendo nosso
+--   PRODUTO  pelo menos 3 produtos DE UM MESMO GRUPO -- e nao tres
+--            produtos quaisquer do portfolio, que e coisa bem diferente
+--
+-- Duas portas laterais que nao passam por medalha nenhuma:
+--   NIVEL POR ROB  o cliente entra num nivel so pelo ROB, por faixas que
+--                  mudam conforme o segmento
+--   DIAMANTE       medalha de cash MAIS uma faixa de ROB. E o unico nivel
+--                  acima do VIP, e nao se chega nele so acumulando
+--                  medalha: sem a de cash nao ha diamante
+--
+-- Por isso `nivel` e guardado E as tres medalhas sao guardadas. Derivar o
+-- nivel da contagem na leitura daria errado nos dois casos acima -- um
+-- cliente pode estar no Nivel 2 com uma medalha so, ou em Diamante com
+-- uma. E as premissas mudam por segmento e ainda estao em revisao na
+-- area, entao o que vale e o que a origem mandou, nao o que a formula
+-- reconstroi.
+--
+-- data_graduacao: quando ele chegou ao nivel em que esta. Sem ela nao da
+-- para separar quem acabou de subir de quem esta parado ali ha um ano, e
+-- as duas conversas sao opostas.
+--
+-- ESCALA (a coluna nivel):
+--   0 sem nivel   1 Nivel 1   2 Nivel 2   3 VIP   4 Diamante
+CREATE TABLE IF NOT EXISTS fato_conecta (
+  anomes          INT UNSIGNED      NOT NULL,
+  data            DATE              NOT NULL,
+  conta           VARCHAR(20)       NOT NULL,
+  nivel           TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  medalha_cash    TINYINT(1)        NOT NULL DEFAULT 0,
+  medalha_risco   TINYINT(1)        NOT NULL DEFAULT 0,
+  medalha_produto TINYINT(1)        NOT NULL DEFAULT 0,
+  -- Redundante com as tres acima de proposito: e por ela que a carteira
+  -- inteira e somada e filtrada, e SUM de uma coluna e mais barato que
+  -- somar tres CASE em 1,3 milhao de linhas a cada carga.
+  medalhas        TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  -- Como ele chegou no nivel: 1 = so por ROB, sem fechar medalha.
+  nivel_por_rob   TINYINT(1)        NOT NULL DEFAULT 0,
+  -- As medidas por tras de cada medalha, para a tela dizer QUANTO falta
+  -- em vez de so dizer que falta.
+  pct_cash        DECIMAL(6,2)      NULL,
+  pct_risco       DECIMAL(6,2)      NULL,
+  produtos_grupo  TINYINT UNSIGNED  NULL,
+  data_graduacao  DATE              NULL,
+  PRIMARY KEY (anomes, conta),
+  KEY ix_conecta_conta (conta, anomes),
+  KEY ix_conecta_nivel (anomes, nivel),
+  KEY ix_conecta_medalhas (anomes, medalhas)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 9. GIRO DE CARTEIRA e VISITAS — fatos de EVENTO
+-- ---------------------------------------------------------------------
+-- Diferentes dos anteriores: aqui cada linha e um ACONTECIMENTO com data
+-- real, nao uma fotografia mensal. E o unico lugar onde o calendario
+-- diario e usado de verdade -- da para perguntar quantos contatos caem
+-- em dia util.
+--
+-- Guardam funcional e nao conta porque o contato pertence a quem
+-- fez, na data em que fez. Aqui o historico E o objetivo: se a carteira
+-- muda de gerente depois, o contato continua sendo de quem falou.
+--
+-- ATENCAO na medicao: giro = clientes DISTINTOS falados em 90 dias
+-- dividido pela carteira. COUNT(DISTINCT) em janela movel NAO e aditivo
+-- -- nao da para somar o giro de tres meses nem o de dois gerentes.
+-- Tem que ser recalculado em cada recorte.
+-- #####################################################################
+CREATE TABLE IF NOT EXISTS fato_giro (
+  id_contato    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  data          DATE            NOT NULL,
+  anomes        INT UNSIGNED    NOT NULL,
+  funcional     VARCHAR(12)     NOT NULL,
+  cnpj_completo VARCHAR(14)     NOT NULL,
+  canal         ENUM('SMART','MIAMI','WDS') NOT NULL,
+  -- 'msg' (texto livre do app de mensagem) NAO fica aqui de proposito.
+  -- Campo grande em tabela de milhoes de linhas engorda TODA leitura,
+  -- inclusive as consultas que nem usam a mensagem: o banco le em blocos,
+  -- e texto solto derruba quantas linhas cabem por bloco. Se o conteudo
+  -- for necessario, ele vive numa tabela lateral chaveada por id_contato.
+  PRIMARY KEY (id_contato),
+  KEY ix_giro_func (funcional, data),
+  KEY ix_giro_cnpj (cnpj_completo, data),
+  KEY ix_giro_periodo (anomes, canal),
+  KEY ix_giro_data (data)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fato_visita (
+  id_visita     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  data          DATE            NOT NULL,
+  anomes        INT UNSIGNED    NOT NULL,
+  funcional     VARCHAR(12)     NOT NULL,
+  cnpj_completo VARCHAR(14)     NOT NULL,
+  canal         ENUM('PRESENCIAL','ONLINE') NOT NULL,
+  PRIMARY KEY (id_visita),
+  KEY ix_visita_func (funcional, data),
+  KEY ix_visita_cnpj (cnpj_completo, data),
+  KEY ix_visita_periodo (anomes, canal),
+  KEY ix_visita_data (data)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- #####################################################################
+-- 10. CAMADA DE AGREGADOS
+-- ---------------------------------------------------------------------
+-- Regra do projeto: NENHUMA consulta de tela toca fato_*. As telas leem
+-- somente agg_*. Os fatos existem para auditoria e para reconstruir os
+-- agregados.
+--
+-- Com 6 milhoes de linhas em fato_iap e 20 mil acessos/dia, agregar em
+-- tempo de request nao e "mais lento" -- e nao responder. Ja aconteceu
+-- neste projeto: uma consulta de conferencia com subconsulta correlacionada
+-- estourou o tempo limite e teve que ser reescrita.
+-- #####################################################################
+
+
+-- Mapa conta -> chaves de TODOS os niveis, montado uma vez por carga.
+--
+-- Existe para que cada agregado seja uma juncao so: fato JOIN mapa GROUP BY
+-- <chave do nivel>. Sem ele, cada nivel precisaria repetir a juncao com
+-- dim_encarteiramento, dim_cliente e dim_perfil.
+--
+-- Tambem carrega qtd_elegiveis, que e o denominador do IAP -- assim o
+-- indice sai da mesma varredura que o numerador.
+CREATE TABLE IF NOT EXISTS agg_mapa_conta (
+  conta            VARCHAR(20)       NOT NULL,
+  cnpj_completo    VARCHAR(14)       NOT NULL,
+  id_segmento      TINYINT UNSIGNED  NOT NULL,
+  digital          ENUM('S','N')     NOT NULL DEFAULT 'N',
+  id_departamento  TINYINT UNSIGNED  NOT NULL,
+  id_diretoria     TINYINT UNSIGNED  NOT NULL,
+  id_regional      SMALLINT UNSIGNED NOT NULL,
+  id_agencia       SMALLINT UNSIGNED NOT NULL,
+  id_posto         SMALLINT UNSIGNED NULL,
+  func_gestao      VARCHAR(12)       NULL,
+  func_conta       VARCHAR(12)       NULL,
+  id_grupo         INT UNSIGNED      NOT NULL DEFAULT 0,
+  qtd_elegiveis    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  -- ------------------------------------------------------------------
+  -- QUANDO A CONTA ESTEVE NA CARTEIRA
+  -- ------------------------------------------------------------------
+  -- Sem estas duas datas a carteira nunca mudava de tamanho: agg_cliente
+  -- era o produto cartesiano das contas vivas pelos meses, as mesmas
+  -- 112.632 em todos eles, e "entrou" e "saiu" davam zero por
+  -- construcao. Com elas, a conta entra no mes em que abriu e sai no mes
+  -- em que encerrou -- que e o que o gerente chama de movimentacao da
+  -- carteira.
+  --
+  -- ESTAR NA CARTEIRA no mes M:
+  --     data_abertura <= ultimo dia de M
+  -- E  (data_encerramento IS NULL OU data_encerramento > ultimo dia de M)
+  --
+  -- Repare no que NAO entra na regra: o status. Paralisado, inativo e
+  -- reativado continuam na carteira -- eles sao clientes, so estao
+  -- quietos. So CANCELADO sai, e sai por ter data de encerramento.
+  data_abertura     DATE             NOT NULL,
+  data_encerramento DATE             NULL,
+  -- Atalho do calculo acima para o MES DE REFERENCIA. Existe porque
+  -- meia duzia de consultas so querem a foto de hoje e nao vao repetir a
+  -- comparacao de datas; a verdade continua sendo as duas colunas acima.
+  vivo             TINYINT(1)        NOT NULL DEFAULT 1,
+  PRIMARY KEY (conta),
+  KEY ix_map_abertura (data_abertura),
+  KEY ix_map_encerramento (data_encerramento),
+  KEY ix_map_cnpj (cnpj_completo),
+  KEY ix_map_ag (id_agencia),
+  KEY ix_map_conta_ger (func_conta)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- CREATE TABLE IF NOT EXISTS nao altera tabela que ja existe. Para quem
+-- ja tem a base montada, a coluna nova entra por aqui.
+ALTER TABLE agg_mapa_conta
+  ADD COLUMN IF NOT EXISTS id_grupo INT UNSIGNED NOT NULL DEFAULT 0 AFTER func_conta;
+
+-- ---------------------------------------------------------------------
+-- Um indice por NIVEL DE ESCOPO, com os niveis de baixo pendurados.
+--
+-- Servem as listas de opcao dos filtros (DimensoesRepo::opcoesNo): "quais
+-- agencias existem dentro desta regional", "quais responsaveis existem
+-- dentro desta diretoria". A pergunta e sempre a mesma -- descendentes de
+-- um no -- e como esta tabela e a hierarquia ACHATADA, cada resposta e um
+-- range de indice em vez de uma varredura.
+--
+-- Sem eles, a diretoria e a regional varriam as 305 mil linhas e o
+-- dropdown levava 1,2 SEGUNDO para abrir. Com eles, 24 a 86 ms. Os
+-- numeros nao sao intuitivos: quem parecia caro era o departamental, com
+-- 10.717 gerentes na lista -- e ele era o mais RAPIDO, porque sem recorte
+-- a consulta nem chega aqui, sai direto do catalogo agg_no.
+--
+-- As colunas de baixo entram no indice para ele COBRIR a consulta: sem
+-- elas o DISTINCT ainda teria de ir a tabela linha por linha.
+--
+-- Custo: ~64 MB de indice sobre uma tabela de 28 MB, e alguns segundos a
+-- mais na carga. Vale: sao dropdowns abertos o dia inteiro por 20 mil
+-- acessos, e cada abertura pagava 1,2s.
+ALTER TABLE agg_mapa_conta
+  ADD INDEX IF NOT EXISTS ix_map_h2
+      (id_diretoria, id_regional, id_agencia, func_ger_agencia, func_gestao, responsavel),
+  ADD INDEX IF NOT EXISTS ix_map_h3
+      (id_regional, id_agencia, func_ger_agencia, func_gestao, responsavel),
+  ADD INDEX IF NOT EXISTS ix_map_h4
+      (id_agencia, func_ger_agencia, func_gestao, responsavel),
+  ADD INDEX IF NOT EXISTS ix_map_h5
+      (func_ger_agencia, func_gestao, responsavel),
+  ADD INDEX IF NOT EXISTS ix_map_h6 (func_gestao, responsavel),
+  ADD INDEX IF NOT EXISTS ix_map_h7 (responsavel);
+
+-- Agregado principal: uma linha por no x mes x segmento x digital.
+--
+-- 'nivel' e coluna, nao tabela: sete tabelas obrigariam a repetir cada
+-- metrica nova sete vezes. A chave e VARCHAR porque nos de cima sao id
+-- numerico e nos de baixo sao funcional.
+--
+CREATE TABLE IF NOT EXISTS agg_carteira (
+  anomes             INT UNSIGNED      NOT NULL,
+  nivel              TINYINT UNSIGNED  NOT NULL,
+  chave              VARCHAR(14)       NOT NULL,
+  id_segmento        TINYINT UNSIGNED  NOT NULL,
+  digital            ENUM('S','N')     NOT NULL,
+  -- ancestrais desnormalizados: filtrar por regional nao precisa de juncao
+  id_departamento    TINYINT UNSIGNED  NULL,
+  id_diretoria       TINYINT UNSIGNED  NULL,
+  id_regional        SMALLINT UNSIGNED NULL,
+  id_agencia         SMALLINT UNSIGNED NULL,
+  id_posto           SMALLINT UNSIGNED NULL,
+  func_gestao        VARCHAR(12)       NULL,
+  -- carteira
+  contas             INT UNSIGNED      NOT NULL DEFAULT 0,
+  /* MOVIMENTACAO DA CARTEIRA no mes: contas que ABRIRAM e contas que
+     ENCERRARAM. Nao e o mesmo que o volume ter saido do zero -- isso e
+     agg_runoff, e responde outra pergunta ("o cliente parou de operar").
+     Aqui e entrar e sair da CARTEIRA mesmo.
+
+     A conferencia que amarra as tres colunas:
+       contas(M) = contas(M-1) + entraram(M) - sairam(M)
+     Se ela nao fecha, a regra de quem esta na carteira divergiu entre o
+     esqueleto do agg_cliente e esta contagem. */
+  contas_entraram    INT UNSIGNED      NOT NULL DEFAULT 0,
+  contas_sairam      INT UNSIGNED      NOT NULL DEFAULT 0,
+  /* Quantas destas contas tem GERENTE DE CONTAS (as demais pendem de um
+     posto). E a base da meta de giro.
+
+     A meta de 70% e do GERENTE DE CONTAS. Para gestao, gerente de
+     agencia, agencia, regional, diretoria e departamento, a meta e a
+     SOMA das metas dos gerentes abaixo -- e nao 70% da carteira deles.
+     Os dois numeros so seriam iguais se toda conta tivesse gerente, e
+     6,5% delas nao tem: sao atendidas por posto, que nao tem meta
+     individual. Aplicar 70% no agregado cobraria da regional 10 mil
+     clientes que nao sao meta de ninguem. */
+  contas_com_gerente INT UNSIGNED      NOT NULL DEFAULT 0,
+  cnpjs              INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- IAP: numerador e denominador juntos, para a razao sair correta em
+  -- qualquer recorte (dividir antes de somar da numero errado)
+  iap_contratados    INT UNSIGNED      NOT NULL DEFAULT 0,
+  iap_elegiveis      INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- giro: clientes DISTINTOS falados na janela de 90 dias que termina
+  -- neste mes. NAO e aditivo entre meses nem entre nos -- por isso e
+  -- calculado por nivel, direto do fato, e nunca somado.
+  giro_falados       INT UNSIGNED      NOT NULL DEFAULT 0,
+  giro_contatos      INT UNSIGNED      NOT NULL DEFAULT 0,
+  visitas            INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- conecta: somas e contagens, nunca a media pronta -- media nao e
+  -- aditiva, entao ela sai na leitura dividindo soma por contas.
+  conecta_soma_nivel INT UNSIGNED      NOT NULL DEFAULT 0,
+  conecta_contas     INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- VIP ou Diamante, o topo da escala (nivel >= 3).
+  conecta_vip_mais   INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- Uma contagem por natureza de medalha. Sao tres colunas e nao um
+  -- "total de medalhas" porque a pergunta do gerente nunca e quantas
+  -- medalhas a carteira tem: e QUAL delas esta faltando. Cash faltando
+  -- pede uma conversa de folha e recebimento; risco faltando pede uma
+  -- proposta de credito. Somadas num numero so, as duas somem.
+  conecta_med_cash    INT UNSIGNED     NOT NULL DEFAULT 0,
+  conecta_med_risco   INT UNSIGNED     NOT NULL DEFAULT 0,
+  conecta_med_produto INT UNSIGNED     NOT NULL DEFAULT 0,
+  -- GDAD
+  captacao           DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  aplicacao          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  receita_servicos   DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  receita_ligadas    DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  rob                DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  renc               DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  faturamento_bruto  DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  faturamento_liquido DECIMAL(18,2)    NOT NULL DEFAULT 0.00,
+  -- Os tres que vem prontos do extrato. Somaveis, e por isso ficam aqui;
+  -- o SPREAD nao e coluna nenhuma -- ele e resultado/saldo_medio na
+  -- leitura, porque razao nao se soma (ver fato_gdad).
+  resultado          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  saldo_medio        DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  rar_valor          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  -- IGUALDADE ANTES DO INTERVALO. A tela filtra UM no ao longo de VARIOS
+  -- meses: o no e igualdade, o periodo e intervalo. Com anomes na frente,
+  -- tudo depois dele so servia para filtrar linha a linha -- o plano
+  -- estimava 591 mil linhas para devolver 383, e a consulta levava 157ms.
+  -- Reordenado, sao 2ms.
+  PRIMARY KEY (nivel, chave, anomes, id_segmento, digital),
+  KEY ix_ac_dir (nivel, id_diretoria, anomes),
+  KEY ix_ac_reg (nivel, id_regional, anomes),
+  KEY ix_ac_ag  (nivel, id_agencia, anomes),
+  KEY ix_ac_gestao (nivel, func_gestao, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Resultado por linha de produto. So ate o nivel AGENCIA: abaixo disso a
+-- combinacao no x produto x mes explodiria, e o detalhe por produto de um
+-- gerente e um recorte estreito que sai do fato sem custo.
+CREATE TABLE IF NOT EXISTS agg_produto (
+  anomes             INT UNSIGNED      NOT NULL,
+  nivel              TINYINT UNSIGNED  NOT NULL,
+  chave              VARCHAR(14)       NOT NULL,
+  id_produto         SMALLINT UNSIGNED NOT NULL,
+  id_diretoria       TINYINT UNSIGNED  NULL,
+  id_regional        SMALLINT UNSIGNED NULL,
+  captacao           DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  aplicacao          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  receita_servicos   DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  receita_ligadas    DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  rob                DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  renc               DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  faturamento_bruto  DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  faturamento_liquido DECIMAL(18,2)    NOT NULL DEFAULT 0.00,
+  resultado          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  saldo_medio        DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  rar_valor          DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (nivel, chave, anomes, id_produto),
+  KEY ix_ap_prod (id_produto, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Penetracao por subproduto: alimenta a analise de lacuna ("qual produto
+-- falta vender"). Tambem ate o nivel AGENCIA.
+CREATE TABLE IF NOT EXISTS agg_iap_produto (
+  anomes        INT UNSIGNED      NOT NULL,
+  nivel         TINYINT UNSIGNED  NOT NULL,
+  chave         VARCHAR(14)       NOT NULL,
+  id_subproduto SMALLINT UNSIGNED NOT NULL,
+  contratados   INT UNSIGNED      NOT NULL DEFAULT 0,
+  elegiveis     INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- O PEDACO DA LACUNA QUE JA ESTA APROVADO.
+  -- Clientes com limite pre-aprovado vigente para este subproduto e que
+  -- NAO o contrataram, e quanto de limite esta parado ai. E a fatia
+  -- acionavel da lacuna: o motor de credito ja disse sim, falta a
+  -- conversa. Mesmo grao da lacuna, entao mora na mesma linha -- tabela
+  -- propria para as mesmas cinco chaves seria uma juncao a mais em toda
+  -- leitura para nao acrescentar nenhuma dimensao.
+  pre_clientes  INT UNSIGNED      NOT NULL DEFAULT 0,
+  pre_limite    DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (nivel, chave, anomes, id_subproduto),
+  KEY ix_aip_sub (id_subproduto, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Catalogo de nos: nivel, chave e nome de cada unidade da hierarquia.
+--
+-- Existe porque a tela precisa do NOME de cada no, e busca-los com
+-- SELECT DISTINCT sobre dim_encarteiramento custava 2,4 segundos -- seis
+-- varreduras de 300 mil linhas para extrair 18 mil nomes. Materializado, e
+-- uma consulta de 18 mil linhas.
+--
+-- E o mesmo principio dos outros agregados, aplicado ao catalogo: o que a
+-- tela le sempre nao se calcula em tempo de request.
+CREATE TABLE IF NOT EXISTS agg_no (
+  nivel      TINYINT UNSIGNED NOT NULL,
+  chave      VARCHAR(14)      NOT NULL,
+  nome       VARCHAR(90)      NOT NULL,
+  pai_nivel  TINYINT UNSIGNED NULL,
+  pai_chave  VARCHAR(14)      NULL,
+  PRIMARY KEY (nivel, chave),
+  KEY ix_no_pai (pai_nivel, pai_chave)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ---------------------------------------------------------------------
+-- Contagens DISTINTAS por no. Nao entram em agg_carteira porque nao sao
+-- aditivas: um grupo economico com conta em duas agencias e UM grupo, mas
+-- somar as duas agencias contaria dois. Aqui cada linha ja e a resposta
+-- pronta para um recorte, e a leitura SELECIONA em vez de somar.
+--
+-- Sem anomes de proposito: o encarteiramento e foto atual, sem data,
+-- entao a composicao da carteira e a mesma em todos os meses. Guardar doze
+-- copias identicas seria doze vezes o espaco pela mesma resposta.
+--
+-- recorte e o filtro ja aplicado:
+--   T      todos
+--   S<id>  um segmento
+--   D<S|N> um canal
+--   S<id>D<S|N>  os dois
+-- Combinacao fora dessa lista devolve nulo, e a tela mostra "—". Preferir
+-- o travessao a um numero que some contas repetidas.
+CREATE TABLE IF NOT EXISTS agg_distinto (
+  nivel   TINYINT UNSIGNED NOT NULL,
+  chave   VARCHAR(14)      NOT NULL,
+  recorte VARCHAR(6)       NOT NULL,
+  grupos  INT UNSIGNED     NOT NULL DEFAULT 0,
+  cnpjs   INT UNSIGNED     NOT NULL DEFAULT 0,
+  contas  INT UNSIGNED     NOT NULL DEFAULT 0,
+  PRIMARY KEY (nivel, chave, recorte)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- ---------------------------------------------------------------------
+-- PREFERENCIAS DO USUARIO
+-- ---------------------------------------------------------------------
+-- As duas tabelas abaixo sao as unicas que a APLICACAO escreve. Todo o
+-- resto do banco e carregado pelo ETL e so lido. Por isso elas ficam
+-- separadas: um reset dos dados nao pode apagar o que o usuario montou.
+
+-- Visoes de coluna. Ate 5 por usuario por tela -- o limite e aplicado no
+-- PHP, onde da para devolver mensagem em vez de erro de constraint.
+--
+-- 'colunas' guarda os ids em CSV, na ordem escolhida. Nao e JSON porque o
+-- MariaDB 10.1 nao tem tipo JSON (chegou no 10.2), e a alternativa seria
+-- LONGTEXT sem validacao nenhuma -- que e o que temos aqui, so que menor.
+-- A validacao real acontece na leitura, contra o catalogo de colunas: id
+-- desconhecido e descartado, entao remover uma coluna do sistema nao
+-- quebra a visao salva de ninguem.
+CREATE TABLE IF NOT EXISTS usuario_visao (
+  id_visao      INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+  funcional     VARCHAR(12)      NOT NULL,
+  tela          VARCHAR(24)      NOT NULL DEFAULT 'resumo',
+  nome          VARCHAR(40)      NOT NULL,
+  colunas       VARCHAR(600)     NOT NULL,
+  padrao        TINYINT(1)       NOT NULL DEFAULT 0,
+  criado_em     DATETIME         NOT NULL,
+  atualizado_em DATETIME         NOT NULL,
+  PRIMARY KEY (id_visao),
+  -- Nome unico por usuario/tela: salvar de novo com o mesmo nome atualiza
+  -- a visao em vez de criar uma duplicata silenciosa.
+  UNIQUE KEY ux_visao_nome (funcional, tela, nome),
+  KEY ix_visao_dono (funcional, tela, padrao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Anotacoes do usuario sobre um no da hierarquia.
+--
+-- Varias por no, e nao um campo unico de texto: o uso real e registro de
+-- acompanhamento ("liguei para o gerente em 12/03"), que so faz sentido
+-- como historico datado.
+CREATE TABLE IF NOT EXISTS usuario_anotacao (
+  id_anotacao   INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+  funcional     VARCHAR(12)      NOT NULL,
+  nivel         TINYINT UNSIGNED NOT NULL,
+  chave         VARCHAR(14)      NOT NULL,
+  texto         VARCHAR(2000)    NOT NULL,
+  criado_em     DATETIME         NOT NULL,
+  atualizado_em DATETIME         NOT NULL,
+  PRIMARY KEY (id_anotacao),
+  -- Igualdade antes do intervalo, como no resto do banco: a leitura e
+  -- sempre "as anotacoes DESTE usuario NESTE no, mais recentes primeiro".
+  KEY ix_anot_dono (funcional, nivel, chave, atualizado_em),
+  -- Para o contador de anotacoes na tabela, que pergunta por no.
+  KEY ix_anot_no (nivel, chave)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Selecao de colunas ATIVA de cada usuario.
+--
+-- Separada de usuario_visao de proposito. Sao duas coisas diferentes:
+--   * usuario_visao  = ate 5 arranjos NOMEADOS, que a pessoa monta e
+--                      escolhe entre eles;
+--   * usuario_estado = o que ela esta olhando AGORA.
+--
+-- Sem esta tabela, marcar colunas e clicar Aplicar sem batizar a visao se
+-- perderia na proxima carga -- e ninguem batiza uma visao so para mexer
+-- numa coluna. Guardar aqui tambem evita gastar um dos 5 nomes com um
+-- arranjo temporario.
+CREATE TABLE IF NOT EXISTS usuario_estado (
+  funcional     VARCHAR(12)  NOT NULL,
+  tela          VARCHAR(24)  NOT NULL DEFAULT 'resumo',
+  colunas       VARCHAR(600) NOT NULL,
+  atualizado_em DATETIME     NOT NULL,
+  PRIMARY KEY (funcional, tela)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- AGG_CLIENTE — o ultimo degrau da hierarquia.
+-- ---------------------------------------------------------------------
+-- Uma linha por conta VIVA por mes: 112 mil x 12 = 1,35 milhao. E o unico
+-- agregado cujo grao e o proprio cliente, e existe pelo mesmo motivo dos
+-- outros: a tela nao pode tocar fato_*. Sem ele, listar os clientes de uma
+-- diretoria seria juncao de cinco fatos com 13 milhoes de linhas.
+--
+-- 'giro_falado' e 0/1 no MES, e nao contagem. Na janela ele vira MAX(),
+-- nunca SUM(): o cliente falado em tres meses seguidos continua sendo UM
+-- cliente falado. Essa e a mesma armadilha do giro nos outros niveis, so
+-- que aqui ela tem solucao trivial porque o grao ja e o cliente.
+--
+-- O nome do cliente NAO esta aqui de proposito: seriam 1,35 milhao de
+-- copias de um VARCHAR(120), uns 160 MB para um dado que nao muda. Vem de
+-- dim_cliente por juncao na leitura, que e busca por chave primaria.
+CREATE TABLE IF NOT EXISTS agg_cliente (
+  anomes           INT UNSIGNED      NOT NULL,
+  conta            VARCHAR(20)       NOT NULL,
+  id_segmento      TINYINT UNSIGNED  NOT NULL,
+  digital          ENUM('S','N')     NOT NULL DEFAULT 'N',
+  id_departamento  TINYINT UNSIGNED  NOT NULL,
+  id_diretoria     TINYINT UNSIGNED  NOT NULL,
+  id_regional      SMALLINT UNSIGNED NOT NULL,
+  id_agencia       SMALLINT UNSIGNED NOT NULL,
+  func_gestao      VARCHAR(12)       NULL,
+  func_conta       VARCHAR(12)       NULL,
+
+  iap_contratados  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  iap_elegiveis    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  giro_falado      TINYINT(1)        NOT NULL DEFAULT 0,
+  giro_contatos    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  visitas          SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  -- Conecta no grao do cliente: o nivel e cada medalha uma a uma. E o
+  -- que permite a ficha dizer QUAIS medalhas ele tem e quais faltam --
+  -- guardando so o nivel, "Nivel 2" nao diz quais duas.
+  conecta_nivel    TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  conecta_medalhas TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  conecta_cash     TINYINT(1)        NOT NULL DEFAULT 0,
+  conecta_risco    TINYINT(1)        NOT NULL DEFAULT 0,
+  conecta_produto  TINYINT(1)        NOT NULL DEFAULT 0,
+
+  captacao            DECIMAL(16,2)  NOT NULL DEFAULT 0,
+  aplicacao           DECIMAL(16,2)  NOT NULL DEFAULT 0,
+  receita_servicos    DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  receita_ligadas     DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  rob                 DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  renc                DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  faturamento_bruto   DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  faturamento_liquido DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  resultado           DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  saldo_medio         DECIMAL(14,2)  NOT NULL DEFAULT 0,
+  rar_valor           DECIMAL(14,2)  NOT NULL DEFAULT 0,
+
+  PRIMARY KEY (conta, anomes),
+  -- Um indice por ponto de entrada da tela. A ordem e sempre
+  -- IGUALDADE antes de INTERVALO: o filtro fixa o no e o periodo varre.
+  KEY ix_cli_ger (func_conta, anomes),
+  KEY ix_cli_ges (func_gestao, anomes),
+  KEY ix_cli_ag  (id_agencia, anomes),
+  KEY ix_cli_reg (id_regional, anomes),
+  KEY ix_cli_dir (id_diretoria, anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- AGG_PERFIL — composicao da carteira por atributo do cliente.
+-- ---------------------------------------------------------------------
+-- Alimenta a rosca: "quantos clientes tenho em cada rating / status /
+-- situacao na Receita / grau de restricao / segmento".
+--
+-- Sem 'anomes' de proposito. Todos esses atributos vivem em dim_cliente,
+-- que nao tem historico, e o encarteiramento e foto atual -- entao a
+-- composicao e a mesma em todos os meses. Guardar doze copias identicas
+-- seria doze vezes o espaco pela mesma resposta.
+--
+-- id_segmento e digital ficam como COLUNAS, e nao como um campo 'recorte'
+-- codificado (que e o que agg_distinto faz). A diferenca e que aqui a
+-- medida e COUNT simples, que SOMA entre segmentos: cada conta tem um
+-- segmento so. Em agg_distinto a medida e COUNT(DISTINCT), que nao soma --
+-- por isso la o recorte precisa vir pronto e aqui nao.
+CREATE TABLE IF NOT EXISTS agg_perfil (
+  nivel       TINYINT UNSIGNED NOT NULL,
+  chave       VARCHAR(14)      NOT NULL,
+  id_segmento TINYINT UNSIGNED NOT NULL,
+  digital     ENUM('S','N')    NOT NULL DEFAULT 'N',
+  dimensao    VARCHAR(20)      NOT NULL,
+  valor       VARCHAR(40)      NOT NULL,
+  ordem       SMALLINT         NOT NULL DEFAULT 0,
+  contas      INT UNSIGNED     NOT NULL DEFAULT 0,
+  -- Era 'volume' (captacao + aplicacao). Virou saldo medio junto com o
+  -- resto do painel: a rosca reparte o mesmo saldo que os cartoes
+  -- mostram, e duas medidas de tamanho na mesma tela nao se explicam.
+  saldo_medio DECIMAL(18,2)    NOT NULL DEFAULT 0,
+  PRIMARY KEY (nivel, chave, dimensao, valor, id_segmento, digital),
+  KEY ix_perfil_dim (dimensao, nivel, chave)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- HIERARQUIA REVISADA (05/09/2026)
+-- ---------------------------------------------------------------------
+-- A estrutura real tem gerente de agencia entre a agencia e a gestao, e
+-- posto NAO e sub-unidade: e irmao do gerente de contas. A conta responde
+-- a um OU a outro, nunca aos dois.
+--
+-- 'responsavel' guarda os dois numa coluna so. Funcional para gerente,
+-- 'P' + id para posto -- o prefixo evita que um id de posto colida com
+-- uma funcional.
+ALTER TABLE agg_mapa_conta
+  ADD COLUMN IF NOT EXISTS func_ger_agencia VARCHAR(12) NULL AFTER id_posto,
+  ADD COLUMN IF NOT EXISTS responsavel      VARCHAR(14) NULL AFTER func_conta;
+ALTER TABLE agg_carteira
+  ADD COLUMN IF NOT EXISTS func_ger_agencia VARCHAR(12) NULL AFTER id_agencia;
+ALTER TABLE agg_cliente
+  ADD COLUMN IF NOT EXISTS func_ger_agencia VARCHAR(12) NULL AFTER id_agencia,
+  ADD COLUMN IF NOT EXISTS responsavel      VARCHAR(14) NULL AFTER func_conta;
+
+-- ---------------------------------------------------------------------
+-- A LACUNA QUE JA ESTA APROVADA (07/09/2026)
+-- ---------------------------------------------------------------------
+-- Cliente com limite pre-aprovado vigente para um produto que ele nao
+-- contratou. Mesmo grao da lacuna (nivel, chave, anomes, subproduto),
+-- entao entra na mesma linha em vez de virar tabela.
+--
+-- E a materia-prima do insight mais acionavel da tela de Insights: a
+-- lacuna crua diz "faltam 43 clientes em VGBL"; esta diz "12 deles ja
+-- tem credito aprovado esperando".
+ALTER TABLE agg_iap_produto
+  ADD COLUMN IF NOT EXISTS pre_clientes INT UNSIGNED  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pre_limite   DECIMAL(18,2) NOT NULL DEFAULT 0.00;
+
+-- ---------------------------------------------------------------------
+-- RESULTADO, SALDO MEDIO E RAR VINDOS PRONTOS (08/09/2026)
+-- ---------------------------------------------------------------------
+-- Tres colunas novas no extrato, propagadas pelos agregados.
+--
+-- O VOLUME (captacao + aplicacao) sai das telas: onde ele aparecia,
+-- passa a aparecer o RESULTADO. Captacao e aplicacao continuam, porque
+-- respondem perguntas proprias -- o que sai e a soma dos dois, que
+-- servia de "tamanho" e agora e trabalho do saldo medio.
+--
+-- O RAR deixa de ser calculado aqui. Ele vinha de
+-- (faturamento liquido anualizado - PDD) / volume; agora vem do extrato
+-- em REAIS (rar_valor) e o percentual de um no e
+-- SUM(rar_valor) / SUM(saldo_medio) -- que e a unica forma de o RAR de
+-- uma agencia nao virar a media aritmetica das contas dela.
+ALTER TABLE fato_gdad
+  ADD COLUMN IF NOT EXISTS resultado   DECIMAL(16,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS saldo_medio DECIMAL(16,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS rar_valor   DECIMAL(16,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE agg_carteira
+  ADD COLUMN IF NOT EXISTS resultado   DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS saldo_medio DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS rar_valor   DECIMAL(18,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE agg_produto
+  ADD COLUMN IF NOT EXISTS resultado   DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS saldo_medio DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS rar_valor   DECIMAL(18,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE agg_cliente
+  ADD COLUMN IF NOT EXISTS resultado   DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS saldo_medio DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS rar_valor   DECIMAL(14,2) NOT NULL DEFAULT 0.00;
+-- A rosca de composicao reparte SALDO MEDIO, e nao mais volume.
+ALTER TABLE agg_perfil
+  CHANGE COLUMN IF EXISTS volume saldo_medio DECIMAL(18,2) NOT NULL DEFAULT 0;
+
+
+-- =====================================================================
+-- CONTRATOS: quando o dinheiro ENTRA e quando SAI
+-- =====================================================================
+-- Duas tabelas, uma por natureza, porque sao dois contratos diferentes:
+-- aplicacao e credito concedido (o banco empresta e recebe de volta no
+-- vencimento); captacao e saldo que o cliente deixa (o banco devolve no
+-- vencimento). Os dois tem numero, valor, entrada e saida -- mas a
+-- LEITURA do vencimento e oposta, e juntar numa tabela so com uma coluna
+-- de tipo convidaria a somar as duas na mesma conta.
+--
+-- POR QUE ELAS EXISTEM: sem data de saida, "como estarei em seis meses"
+-- so podia ser respondido com uma premissa (repetir a media dos meses
+-- passados). Com o vencimento contratado, o que sai em cada mes futuro e
+-- DADO. O que entra tambem, quando a operacao ja esta fechada e o
+-- desembolso e futuro.
+--
+-- data_saida NULL = contrato SEM vencimento -- conta corrente, poupanca,
+-- limite rotativo. Ele nunca aparece como saida em mes nenhum, e e assim
+-- que tem de ser: o dinheiro fica ate o cliente decidir tirar, e isso nao
+-- se projeta.
+--
+-- A soma dos contratos VIVOS de uma conta reproduz o saldo dela no mes de
+-- referencia. E o que faz a projecao comecar de onde a tela diz que a
+-- carteira esta -- sem isso o grafico abriria num numero e o cartao ao
+-- lado mostraria outro.
+
+CREATE TABLE IF NOT EXISTS fato_contrato_aplicacao (
+  contrato     VARCHAR(20)       NOT NULL,
+  conta        VARCHAR(20)       NOT NULL,
+  id_produto   SMALLINT UNSIGNED NULL,
+  valor        DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  data_entrada DATE              NOT NULL,
+  data_saida   DATE              NULL,
+  PRIMARY KEY (contrato),
+  KEY ix_capl_conta (conta),
+  KEY ix_capl_entrada (data_entrada),
+  KEY ix_capl_saida (data_saida)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fato_contrato_captacao (
+  contrato     VARCHAR(20)       NOT NULL,
+  conta        VARCHAR(20)       NOT NULL,
+  id_produto   SMALLINT UNSIGNED NULL,
+  valor        DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  data_entrada DATE              NOT NULL,
+  data_saida   DATE              NULL,
+  PRIMARY KEY (contrato),
+  KEY ix_ccap_conta (conta),
+  KEY ix_ccap_entrada (data_entrada),
+  KEY ix_ccap_saida (data_saida)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- O QUE ENTRA E O QUE SAI, POR NO E POR MES FUTURO
+-- ---------------------------------------------------------------------
+-- Agregado dos dois fatos acima, pelos sete niveis. Uma tela nao varre
+-- 400 mil contratos por acesso -- sao 20 mil por dia.
+--
+-- Guarda tambem os meses PASSADOS da janela: o mesmo grafico serve para
+-- conferir se o que foi projetado aconteceu.
+--
+-- id_segmento segue a convencao do resto dos agregados: 0 e a LINHA DE
+-- TOTAL, ja somada, e os demais valores sao os segmentos de verdade. As
+-- linhas de segmento particionam a de total (ha conferencia disso no
+-- build), entao filtrar por dois segmentos e somar as duas linhas.
+--
+-- A coluna entrou depois. Sem ela, o cartao de runoff abria no saldo JA
+-- FILTRADO por segmento e descontava o vencimento do no INTEIRO: numa
+-- agencia filtrada por MEI, R$ 3,3 mi de saldo com R$ 8,4 mi vencendo
+-- terminava em saldo negativo, que nao existe.
+CREATE TABLE IF NOT EXISTS agg_vencimento (
+  nivel   TINYINT UNSIGNED  NOT NULL,
+  chave   VARCHAR(14)       NOT NULL,
+  anomes  INT UNSIGNED      NOT NULL,
+  tipo    ENUM('aplicacao','captacao') NOT NULL,
+  id_segmento SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  entra   DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  sai     DECIMAL(18,2)     NOT NULL DEFAULT 0.00,
+  n_entra INT UNSIGNED      NOT NULL DEFAULT 0,
+  n_sai   INT UNSIGNED      NOT NULL DEFAULT 0,
+  -- id_segmento entra no FIM da chave: a leitura da tela e sempre por
+  -- (nivel, chave) e uma faixa de anomes, com o segmento fixo -- o
+  -- prefixo da chave continua servindo essa consulta inteira.
+  PRIMARY KEY (nivel, chave, anomes, tipo, id_segmento),
+  KEY ix_venc_mes (anomes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- LIMITE PRE-APROVADO
+-- ---------------------------------------------------------------------
+-- O que o cliente PODE tomar sem passar por analise -- o motor de credito
+-- ja disse sim e o limite esta reservado esperando ele aceitar.
+--
+-- E a unica coisa da ficha do cliente que aponta para a frente. Todo o
+-- resto -- saldo, receita, IAP, giro -- conta o que ja aconteceu; isto
+-- aqui e dinheiro parado que vira negocio com um telefonema. Por isso ele
+-- ganha secao propria ao lado dos produtos, e nao uma linha perdida na
+-- ficha cadastral.
+--
+-- utilizado: quanto do limite ja virou contrato. limite - utilizado e o
+-- que sobra, e e esse numero que a tela mostra grande. Guardar os dois em
+-- vez do saldo pronto e o que permite mostrar "R$ 180 mil de R$ 500 mil",
+-- que e uma frase bem diferente de "R$ 180 mil".
+--
+-- data_validade: proposta pre-aprovada VENCE. Limite vencido nao e
+-- oportunidade, e ruido -- a tela separa os dois.
+--
+-- Sem historico de propriosito: pre-aprovado e uma FOTO do que vale hoje.
+-- A serie de quanto ja foi ofertado no passado seria outra tabela, e
+-- ninguem pediu.
+-- ---------------------------------------------------------------------
+-- CADASTRO PUBLICO DA RECEITA FEDERAL
+-- ---------------------------------------------------------------------
+-- O que o extrato do banco NAO traz sobre a empresa: endereco, telefone,
+-- nome fantasia, natureza juridica, capital social, quadro societario,
+-- CNAEs secundarios e a situacao cadastral com data e motivo.
+--
+-- Tabela SEPARADA de dim_cliente de proposito. Sao duas fontes com donos
+-- diferentes: dim_cliente e o extrato do banco, esta e um orgao publico.
+-- Misturar as duas faria uma recarga do extrato apagar o enriquecimento,
+-- e um erro da Receita virar erro do cadastro do banco.
+--
+-- ==================== DE ONDE VEM ====================
+--
+-- database/enriquecer_receita.php, que aceita duas fontes:
+--
+--   API por CNPJ (BrasilAPI, Minha Receita, ReceitaWS) -- boa para
+--   desenvolvimento e para lotes pequenos. Nao serve para 112 mil
+--   clientes: a mais generosa levaria horas martelando um servico
+--   comunitario gratuito, e a ReceitaWS levaria 26 dias.
+--
+--   DADOS ABERTOS da Receita Federal -- os ~60 arquivos ZIP publicados
+--   mensalmente. Sem limite de uso, e e o caminho certo para a base
+--   inteira.
+--
+-- E ha um motivo que nao e de engenharia para preferir o arquivo em
+-- massa num banco: mandar a lista de CNPJs dos clientes para uma API de
+-- terceiros CONTA para essa API quem sao os clientes do banco. Baixando
+-- o registro publico inteiro e cruzando localmente, nada sobre a
+-- carteira sai da maquina.
+--
+-- `erro` guarda o motivo de uma busca que nao deu certo. Sem ele, todo
+-- CNPJ invalido ou inexistente seria tentado de novo em toda rodada,
+-- para sempre.
+CREATE TABLE IF NOT EXISTS dim_cliente_receita (
+  cnpj_completo     VARCHAR(14)  NOT NULL,
+  razao_social      VARCHAR(150) NULL,
+  nome_fantasia     VARCHAR(150) NULL,
+  situacao          VARCHAR(30)  NULL,
+  data_situacao     DATE         NULL,
+  motivo_situacao   VARCHAR(120) NULL,
+  natureza_juridica VARCHAR(120) NULL,
+  porte_receita     VARCHAR(30)  NULL,
+  capital_social    DECIMAL(18,2) NULL,
+  cnae_fiscal       VARCHAR(10)  NULL,
+  cnae_descricao    VARCHAR(150) NULL,
+  inicio_atividade  DATE         NULL,
+  municipio         VARCHAR(80)  NULL,
+  uf                CHAR(2)      NULL,
+  cep               VARCHAR(8)   NULL,
+  bairro            VARCHAR(80)  NULL,
+  logradouro        VARCHAR(180) NULL,
+  numero            VARCHAR(20)  NULL,
+  telefone          VARCHAR(20)  NULL,
+  email             VARCHAR(120) NULL,
+  simples           TINYINT(1)   NULL,
+  mei               TINYINT(1)   NULL,
+  qtd_socios        SMALLINT UNSIGNED NULL,
+  -- JSON em TEXT: MariaDB 10.1 nao tem tipo JSON nativo (chegou na 10.2),
+  -- e a tela so le, nunca consulta por dentro.
+  socios            TEXT         NULL,
+  cnaes_secundarios TEXT         NULL,
+  fonte             VARCHAR(20)  NULL,
+  buscado_em        DATETIME     NULL,
+  erro              VARCHAR(140) NULL,
+  PRIMARY KEY (cnpj_completo),
+  KEY ix_rec_uf (uf),
+  KEY ix_rec_situacao (situacao),
+  KEY ix_rec_buscado (buscado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- VISITA REGISTRADA NA MAO
+-- ---------------------------------------------------------------------
+-- CONTATO tem canal: o SMART, o MIAMI e o WDS registram sozinhos quem
+-- foi falado, e fato_giro traz isso pronto. VISITA nao tem canal --
+-- ninguem passa por sistema nenhum para ir ate a empresa. Ou o gerente
+-- registra, ou a visita nao existe em lugar algum.
+--
+-- E por isso que esta tabela e de VISITA e nao de contato generico: o
+-- contato ja chega pelo extrato, e uma tela que peca para digitar o que
+-- o sistema ja capturou so gera trabalho e divergencia. O que falta e a
+-- porta da empresa.
+--
+-- COMPARTILHADA, e nao por usuario -- e a diferenca desta tabela para
+-- usuario_anotacao, que fica na mesma familia. Anotacao e o rascunho de
+-- quem escreveu: ninguem mais precisa ver. Visita e um FATO sobre o
+-- cliente, e o proximo gerente que abrir a ficha precisa saber que
+-- alguem esteve la semana passada -- senao marca de novo, e o cliente
+-- recebe a mesma oferta duas vezes. Por isso guarda quem registrou:
+-- compartilhado sem autoria vira boato.
+--
+-- Por CNPJ e nao por conta, igual a fato_giro e fato_visita: o gerente
+-- visitou a EMPRESA. Duas contas do mesmo CNPJ receberam a mesma visita,
+-- e registrar em uma so faria a outra parecer abandonada.
+--
+-- O RLS nao mora aqui: quem grava so enxerga cliente do proprio recorte,
+-- e a checagem fica no repositorio (ClienteRepo::escopoOk), na porta.
+CREATE TABLE IF NOT EXISTS usuario_visita (
+  id_visita     INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  cnpj_completo VARCHAR(14)   NOT NULL,
+  funcional     VARCHAR(12)   NOT NULL,
+  data          DATE          NOT NULL,
+  -- PRESENCIAL, ONLINE, REUNIAO, EVENTO ou OUTRO. Nao e "canal": visita
+  -- nao tem canal, tem FORMATO.
+  tipo          VARCHAR(20)   NOT NULL,
+  assunto       VARCHAR(80)   NULL,
+  observacao    VARCHAR(400)  NULL,
+  criado_em     DATETIME      NOT NULL,
+  PRIMARY KEY (id_visita),
+  KEY ix_uvis_cnpj (cnpj_completo, data),
+  KEY ix_uvis_func (funcional)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fato_pre_aprovado (
+  conta         VARCHAR(20)       NOT NULL,
+  id_subproduto SMALLINT UNSIGNED NOT NULL,
+  limite        DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  utilizado     DECIMAL(16,2)     NOT NULL DEFAULT 0.00,
+  taxa_am       DECIMAL(6,4)      NULL,
+  data_apuracao DATE              NOT NULL,
+  data_validade DATE              NULL,
+  PRIMARY KEY (conta, id_subproduto),
+  KEY ix_prea_sub (id_subproduto),
+  KEY ix_prea_validade (data_validade)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
