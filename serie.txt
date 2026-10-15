@@ -10,6 +10,7 @@ VAR _PadBottom = 72
 VAR _ChartW = _W - _PadLeft - _PadRight
 VAR _ChartH = _SvgH - _PadTop - _PadBottom
 
+
 /* ============================================================
    CORES
    ============================================================ */
@@ -30,6 +31,7 @@ VAR _CorMeta              = "#A84442"
 VAR _CorBest              = "#3F7D48"
 VAR _CorWorst             = "#A8524B"
 VAR _CorFuncao            = "#C96A3A"
+
 
 /* ============================================================
    FIELD PARAMETER
@@ -59,6 +61,7 @@ VAR _IndicadorUnico =
         )
     )
 
+
 /* ============================================================
    PERÍODOS
    ============================================================ */
@@ -75,6 +78,7 @@ VAR _PeriodosBase =
             'BASE'[MESANO]
         )
     )
+
 
 /* ============================================================
    MÊS NUMÉRICO
@@ -149,6 +153,7 @@ VAR _QtdPeriodos =
 VAR _DivX =
     MAX ( 1, _QtdPeriodos - 1 )
 
+
 /* ============================================================
    DATA DE INÍCIO DA FUNÇÃO
    ============================================================ */
@@ -198,6 +203,7 @@ VAR _PosFuncao =
         ),
         [@Pos]
     )
+
 
 /* ============================================================
    DADOS LONGOS
@@ -309,6 +315,7 @@ VAR _DadosValidos =
 VAR _TemDados =
     COUNTROWS ( _DadosValidos ) > 0
 
+
 /* ============================================================
    ESCALA Y
    ============================================================ */
@@ -361,6 +368,7 @@ VAR _YRange =
         1,
         _YMax - _YMin
     )
+
 
 /* ============================================================
    SÉRIE ÚNICA / INSIGHTS
@@ -464,6 +472,7 @@ VAR _PctMesesMeta =
         ) * 100
     )
 
+
 /* ============================================================
    MÁXIMO / MÍNIMO
    ============================================================ */
@@ -504,6 +513,7 @@ VAR _SortMin =
         [@SortL]
     )
 
+
 /* ============================================================
    INSIGHTS
    ============================================================ */
@@ -542,8 +552,10 @@ VAR _Insights =
                 <div class='insight-label'>
                     MOM
                 </div>
-                <div class='insight-value'
-                    style='color:" & _CorMoM & ";'>
+                <div
+                    class='insight-value'
+                    style='color:" & _CorMoM & ";'
+                >
                     " &
                     IF (
                         ISBLANK ( _MoM ),
@@ -562,8 +574,10 @@ VAR _Insights =
                 <div class='insight-label'>
                     YOY
                 </div>
-                <div class='insight-value'
-                    style='color:" & _CorYoY & ";'>
+                <div
+                    class='insight-value'
+                    style='color:" & _CorYoY & ";'
+                >
                     " &
                     IF (
                         ISBLANK ( _YoY ),
@@ -593,6 +607,7 @@ VAR _Insights =
         </div>
         "
     )
+
 
 /* ============================================================
    GRID
@@ -638,6 +653,7 @@ VAR _Grid =
         ""
     )
 
+
 /* ============================================================
    META 100%
    ============================================================ */
@@ -658,23 +674,24 @@ VAR _LinhaMeta =
         y1='" & FORMAT ( _Y100, "0.0", "en-US" ) & "'
         y2='" & FORMAT ( _Y100, "0.0", "en-US" ) & "'
         stroke='" & _CorMeta & "'
-        stroke-width='1.7'
+        stroke-width='1.8'
         stroke-dasharray='7 6'
         opacity='.9'
     />
 
     <text
         x='" & FORMAT ( _PadLeft - 12, "0", "en-US" ) & "'
-        y='" & FORMAT ( _Y100 + 4, "0.0", "en-US" ) & "'
+        y='" & FORMAT ( _Y100 + 5, "0.0", "en-US" ) & "'
         text-anchor='end'
         font-family='Segoe UI,Arial,sans-serif'
-        font-size='11'
+        font-size='13'
         font-weight='700'
         fill='" & _CorMeta & "'
     >
         100%
     </text>
     "
+
 
 /* ============================================================
    INÍCIO DA FUNÇÃO
@@ -692,8 +709,8 @@ VAR _MarcadorFuncao =
                     _DivX
                 ) * _ChartW
 
-        VAR _BoxW = 170
-        VAR _BoxH = 40
+        VAR _BoxW = 190
+        VAR _BoxH = 46
 
         VAR _BoxXOriginal =
             _X - DIVIDE ( _BoxW, 2 )
@@ -718,7 +735,7 @@ VAR _MarcadorFuncao =
                 y1='" & FORMAT ( _PadTop + 4, "0", "en-US" ) & "'
                 y2='" & FORMAT ( _PadTop + _ChartH, "0", "en-US" ) & "'
                 stroke='" & _CorFuncao & "'
-                stroke-width='1.7'
+                stroke-width='1.8'
                 stroke-dasharray='5 5'
                 opacity='.75'
             />
@@ -726,16 +743,16 @@ VAR _MarcadorFuncao =
             <circle
                 cx='" & FORMAT ( _X, "0.0", "en-US" ) & "'
                 cy='" & FORMAT ( _PadTop + 4, "0", "en-US" ) & "'
-                r='4.5'
+                r='5'
                 fill='" & _CorFuncao & "'
             />
 
             <rect
                 x='" & FORMAT ( _BoxX, "0.0", "en-US" ) & "'
-                y='4'
+                y='3'
                 width='" & FORMAT ( _BoxW, "0", "en-US" ) & "'
                 height='" & FORMAT ( _BoxH, "0", "en-US" ) & "'
-                rx='9'
+                rx='10'
                 fill='#FFF7F1'
                 stroke='" & _CorFuncao & "'
                 stroke-width='1'
@@ -743,10 +760,10 @@ VAR _MarcadorFuncao =
 
             <text
                 x='" & FORMAT ( _BoxCenter, "0.0", "en-US" ) & "'
-                y='20'
+                y='21'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='12'
+                font-size='14'
                 font-weight='700'
                 fill='" & _CorFuncao & "'
             >
@@ -755,17 +772,18 @@ VAR _MarcadorFuncao =
 
             <text
                 x='" & FORMAT ( _BoxCenter, "0.0", "en-US" ) & "'
-                y='35'
+                y='39'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='11'
-                font-weight='500'
+                font-size='13'
+                font-weight='600'
                 fill='" & _CorSub & "'
             >
                 " & FORMAT ( _DataFuncao, "dd/MM/yyyy" ) & "
             </text>
             "
     )
+
 
 /* ============================================================
    EIXO X
@@ -803,11 +821,11 @@ VAR _MesesSVG =
             "
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PadTop + _ChartH + 24, "0", "en-US" ) & "'
+                y='" & FORMAT ( _PadTop + _ChartH + 26, "0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='12'
-                font-weight='500'
+                font-size='14'
+                font-weight='600'
                 fill='" & _CorSub & "'
             >
                 " & _Mes & "
@@ -817,6 +835,7 @@ VAR _MesesSVG =
         [@Sort],
         ASC
     )
+
 
 /* ============================================================
    ANOS
@@ -880,10 +899,10 @@ VAR _AnosSVG =
             "
             <text
                 x='" & FORMAT ( _XC, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PadTop + _ChartH + 50, "0", "en-US" ) & "'
+                y='" & FORMAT ( _PadTop + _ChartH + 53, "0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='13'
+                font-size='15'
                 font-weight='700'
                 fill='" & _CorTexto & "'
             >
@@ -892,6 +911,7 @@ VAR _AnosSVG =
             ",
         ""
     )
+
 
 /* ============================================================
    LEGENDA
@@ -931,6 +951,7 @@ VAR _Legenda =
         ASC
     )
 
+
 /* ============================================================
    SÉRIES
    ============================================================ */
@@ -964,13 +985,13 @@ VAR _SeriesSVG =
         VAR _Offset =
             SWITCH (
                 MOD ( _Ordem, 6 ),
-                0, -16,
-                1, 22,
-                2, -33,
-                3, 39,
-                4, -49,
-                5, 55,
-                -16
+                0, -18,
+                1, 24,
+                2, -36,
+                3, 42,
+                4, -52,
+                5, 58,
+                -18
             )
 
         /* ====================================================
@@ -1079,7 +1100,7 @@ VAR _SeriesSVG =
             )
 
         /* ====================================================
-           PONTOS + LABELS APENAS COM 1 INDICADOR
+           PONTOS + LABELS SÓ COM 1 INDICADOR
            ==================================================== */
 
         VAR _Pontos =
@@ -1126,8 +1147,8 @@ VAR _SeriesSVG =
 
                 VAR _BoxW =
                     MAX (
-                        44,
-                        LEN ( _TextoValor ) * 8 + 14
+                        48,
+                        LEN ( _TextoValor ) * 9 + 16
                     )
 
                 RETURN
@@ -1136,10 +1157,10 @@ VAR _SeriesSVG =
                     <circle
                         cx='" & FORMAT ( _X, "0.0", "en-US" ) & "'
                         cy='" & FORMAT ( _Y, "0.0", "en-US" ) & "'
-                        r='4.5'
+                        r='5'
                         fill='" & _Cor & "'
                         stroke='white'
-                        stroke-width='1.5'
+                        stroke-width='1.6'
                     />
                     "
 
@@ -1151,12 +1172,12 @@ VAR _SeriesSVG =
                         "
                         <rect
                             x='" & FORMAT ( _X - _BoxW / 2, "0.0", "en-US" ) & "'
-                            y='" & FORMAT ( _LabelY - 15, "0.0", "en-US" ) & "'
+                            y='" & FORMAT ( _LabelY - 17, "0.0", "en-US" ) & "'
                             width='" & FORMAT ( _BoxW, "0.0", "en-US" ) & "'
-                            height='21'
-                            rx='5'
+                            height='24'
+                            rx='6'
                             fill='white'
-                            opacity='.86'
+                            opacity='.88'
                         />
 
                         <text
@@ -1164,7 +1185,7 @@ VAR _SeriesSVG =
                             y='" & FORMAT ( _LabelY, "0.0", "en-US" ) & "'
                             text-anchor='middle'
                             font-family='Segoe UI,Arial,sans-serif'
-                            font-size='13'
+                            font-size='15'
                             font-weight='700'
                             fill='" & _Cor & "'
                         >
@@ -1187,7 +1208,7 @@ VAR _SeriesSVG =
                 d='" & _Path & "'
                 fill='none'
                 stroke='" & _Cor & "'
-                stroke-width='2.4'
+                stroke-width='2.6'
                 stroke-linecap='round'
                 stroke-linejoin='round'
                 stroke-dasharray='7 5'
@@ -1201,6 +1222,7 @@ VAR _SeriesSVG =
         [@Ordem],
         ASC
     )
+
 
 /* ============================================================
    CALLOUT MÁXIMO
@@ -1252,7 +1274,7 @@ VAR _CalloutMax =
         VAR _PillY =
             MAX (
                 48,
-                _Y - 51
+                _Y - 55
             )
 
         RETURN
@@ -1260,8 +1282,8 @@ VAR _CalloutMax =
             <line
                 x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
                 x2='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y1='" & FORMAT ( _PillY + 26, "0.0", "en-US" ) & "'
-                y2='" & FORMAT ( _Y - 7, "0.0", "en-US" ) & "'
+                y1='" & FORMAT ( _PillY + 30, "0.0", "en-US" ) & "'
+                y2='" & FORMAT ( _Y - 8, "0.0", "en-US" ) & "'
                 stroke='" & _CorBest & "'
                 stroke-width='1'
                 stroke-dasharray='2 3'
@@ -1269,11 +1291,11 @@ VAR _CalloutMax =
             />
 
             <rect
-                x='" & FORMAT ( _X - 40, "0.0", "en-US" ) & "'
+                x='" & FORMAT ( _X - 46, "0.0", "en-US" ) & "'
                 y='" & FORMAT ( _PillY, "0.0", "en-US" ) & "'
-                width='80'
-                height='26'
-                rx='13'
+                width='92'
+                height='30'
+                rx='15'
                 fill='#EDF5EE'
                 stroke='" & _CorBest & "'
                 stroke-width='1'
@@ -1281,10 +1303,10 @@ VAR _CalloutMax =
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PillY + 17, "0.0", "en-US" ) & "'
+                y='" & FORMAT ( _PillY + 20, "0.0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='12'
+                font-size='14'
                 font-weight='700'
                 fill='" & _CorBest & "'
             >
@@ -1293,10 +1315,10 @@ VAR _CalloutMax =
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PillY - 5, "0.0", "en-US" ) & "'
+                y='" & FORMAT ( _PillY - 7, "0.0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='9'
+                font-size='11'
                 font-weight='700'
                 letter-spacing='1'
                 fill='" & _CorBest & "'
@@ -1305,6 +1327,7 @@ VAR _CalloutMax =
             </text>
             "
     )
+
 
 /* ============================================================
    CALLOUT MÍNIMO
@@ -1356,8 +1379,8 @@ VAR _CalloutMin =
 
         VAR _PillY =
             MIN (
-                _PadTop + _ChartH - 28,
-                _Y + 30
+                _PadTop + _ChartH - 32,
+                _Y + 32
             )
 
         RETURN
@@ -1365,7 +1388,7 @@ VAR _CalloutMin =
             <line
                 x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
                 x2='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y1='" & FORMAT ( _Y + 7, "0.0", "en-US" ) & "'
+                y1='" & FORMAT ( _Y + 8, "0.0", "en-US" ) & "'
                 y2='" & FORMAT ( _PillY, "0.0", "en-US" ) & "'
                 stroke='" & _CorWorst & "'
                 stroke-width='1'
@@ -1374,11 +1397,11 @@ VAR _CalloutMin =
             />
 
             <rect
-                x='" & FORMAT ( _X - 40, "0.0", "en-US" ) & "'
+                x='" & FORMAT ( _X - 46, "0.0", "en-US" ) & "'
                 y='" & FORMAT ( _PillY, "0.0", "en-US" ) & "'
-                width='80'
-                height='26'
-                rx='13'
+                width='92'
+                height='30'
+                rx='15'
                 fill='#F8EEEE'
                 stroke='" & _CorWorst & "'
                 stroke-width='1'
@@ -1386,10 +1409,10 @@ VAR _CalloutMin =
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PillY + 17, "0.0", "en-US" ) & "'
+                y='" & FORMAT ( _PillY + 20, "0.0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='12'
+                font-size='14'
                 font-weight='700'
                 fill='" & _CorWorst & "'
             >
@@ -1398,10 +1421,10 @@ VAR _CalloutMin =
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                y='" & FORMAT ( _PillY + 40, "0.0", "en-US" ) & "'
+                y='" & FORMAT ( _PillY + 45, "0.0", "en-US" ) & "'
                 text-anchor='middle'
                 font-family='Segoe UI,Arial,sans-serif'
-                font-size='9'
+                font-size='11'
                 font-weight='700'
                 letter-spacing='1'
                 fill='" & _CorWorst & "'
@@ -1411,8 +1434,9 @@ VAR _CalloutMin =
             "
     )
 
+
 /* ============================================================
-   TOOLTIP MENSAL EM CSS/SVG
+   TOOLTIP MENSAL
    ============================================================ */
 
 VAR _LarguraPeriodo =
@@ -1486,18 +1510,18 @@ VAR _HoverMesesSVG =
             COUNTROWS ( _DadosMes )
 
         VAR _TipW =
-            290
+            330
 
         VAR _TipH =
-            52 + _QtdItens * 23
+            62 + _QtdItens * 27
 
         VAR _TipXOriginal =
-            _X + 14
+            _X + 16
 
         VAR _TipX =
             IF (
                 _TipXOriginal + _TipW > _W - _PadRight,
-                _X - _TipW - 14,
+                _X - _TipW - 16,
                 _TipXOriginal
             )
 
@@ -1531,23 +1555,23 @@ VAR _HoverMesesSVG =
 
                 VAR _YLinha =
                     _TipY
-                        + 51
-                        + ( _IndexLinha - 1 ) * 23
+                        + 58
+                        + ( _IndexLinha - 1 ) * 27
 
                 RETURN
                     "
                     <circle
-                        cx='" & FORMAT ( _TipX + 16, "0.0", "en-US" ) & "'
-                        cy='" & FORMAT ( _YLinha - 4, "0.0", "en-US" ) & "'
-                        r='4'
+                        cx='" & FORMAT ( _TipX + 18, "0.0", "en-US" ) & "'
+                        cy='" & FORMAT ( _YLinha - 5, "0.0", "en-US" ) & "'
+                        r='4.5'
                         fill='" & _Cor & "'
                     />
 
                     <text
-                        x='" & FORMAT ( _TipX + 28, "0.0", "en-US" ) & "'
+                        x='" & FORMAT ( _TipX + 31, "0.0", "en-US" ) & "'
                         y='" & FORMAT ( _YLinha, "0.0", "en-US" ) & "'
                         font-family='Segoe UI,Arial,sans-serif'
-                        font-size='11'
+                        font-size='13'
                         font-weight='500'
                         fill='#505050'
                     >
@@ -1555,11 +1579,11 @@ VAR _HoverMesesSVG =
                     </text>
 
                     <text
-                        x='" & FORMAT ( _TipX + _TipW - 14, "0.0", "en-US" ) & "'
+                        x='" & FORMAT ( _TipX + _TipW - 16, "0.0", "en-US" ) & "'
                         y='" & FORMAT ( _YLinha, "0.0", "en-US" ) & "'
                         text-anchor='end'
                         font-family='Segoe UI,Arial,sans-serif'
-                        font-size='12'
+                        font-size='14'
                         font-weight='700'
                         fill='" & _Cor & "'
                     >
@@ -1602,17 +1626,17 @@ VAR _HoverMesesSVG =
                         y='" & FORMAT ( _TipY, "0.0", "en-US" ) & "'
                         width='" & FORMAT ( _TipW, "0", "en-US" ) & "'
                         height='" & FORMAT ( _TipH, "0", "en-US" ) & "'
-                        rx='10'
+                        rx='11'
                         fill='#FFFFFF'
                         stroke='#E4E4E4'
                         stroke-width='1'
                     />
 
                     <text
-                        x='" & FORMAT ( _TipX + 14, "0.0", "en-US" ) & "'
-                        y='" & FORMAT ( _TipY + 21, "0.0", "en-US" ) & "'
+                        x='" & FORMAT ( _TipX + 16, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _TipY + 24, "0.0", "en-US" ) & "'
                         font-family='Segoe UI,Arial,sans-serif'
-                        font-size='13'
+                        font-size='15'
                         font-weight='700'
                         fill='#252525'
                     >
@@ -1620,10 +1644,10 @@ VAR _HoverMesesSVG =
                     </text>
 
                     <text
-                        x='" & FORMAT ( _TipX + 14, "0.0", "en-US" ) & "'
-                        y='" & FORMAT ( _TipY + 37, "0.0", "en-US" ) & "'
+                        x='" & FORMAT ( _TipX + 16, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _TipY + 43, "0.0", "en-US" ) & "'
                         font-family='Segoe UI,Arial,sans-serif'
-                        font-size='10'
+                        font-size='12'
                         font-weight='400'
                         fill='#8A8A8A'
                     >
@@ -1643,6 +1667,7 @@ VAR _HoverMesesSVG =
         ASC
     )
 
+
 /* ============================================================
    HTML FINAL
    ============================================================ */
@@ -1661,7 +1686,7 @@ IF (
         justify-content:center;
         font-family:Segoe UI,Arial,sans-serif;
         color:#777;
-        font-size:14px;
+        font-size:16px;
     '>
         Não há dados para os filtros selecionados.
     </div>
@@ -1693,7 +1718,7 @@ IF (
             }
 
             .section-title{
-                font-size:16px;
+                font-size:20px;
                 line-height:1.15;
                 font-weight:700;
                 color:" & _CorTexto & ";
@@ -1701,16 +1726,16 @@ IF (
 
             .title{
                 margin-top:5px;
-                font-size:16px;
+                font-size:22px;
                 line-height:1.2;
                 font-weight:800;
                 color:" & _CorTexto & ";
             }
 
             .subtitle{
-                margin-top:3px;
-                font-size:14px;
-                line-height:1.25;
+                margin-top:4px;
+                font-size:16px;
+                line-height:1.3;
                 font-weight:400;
                 color:" & _CorSub & ";
             }
@@ -1719,23 +1744,23 @@ IF (
                 display:flex;
                 flex-wrap:wrap;
                 align-items:center;
-                gap:8px 18px;
-                margin-top:11px;
+                gap:10px 20px;
+                margin-top:13px;
             }
 
             .legend-item{
                 display:flex;
                 align-items:center;
-                gap:6px;
-                font-size:14px;
-                font-weight:500;
+                gap:7px;
+                font-size:16px;
+                font-weight:600;
                 color:#4C4C4C;
                 white-space:nowrap;
             }
 
             .legend-line{
                 display:inline-block;
-                width:17px;
+                width:20px;
                 height:0;
                 border-top-width:3px;
                 border-top-style:dashed;
@@ -1744,36 +1769,36 @@ IF (
             .insights{
                 display:flex;
                 align-items:stretch;
-                gap:8px;
-                margin-top:10px;
+                gap:10px;
+                margin-top:12px;
             }
 
             .insight-card{
-                min-width:132px;
-                padding:7px 11px;
+                min-width:145px;
+                padding:9px 13px;
                 border:1px solid #EEEEEE;
-                border-radius:8px;
+                border-radius:9px;
                 background:#FAFAFA;
             }
 
             .insight-label{
-                font-size:9px;
+                font-size:11px;
                 font-weight:700;
                 letter-spacing:.8px;
                 color:#8A8A8A;
             }
 
             .insight-value{
-                margin-top:2px;
-                font-size:15px;
+                margin-top:3px;
+                font-size:18px;
                 line-height:1.1;
                 font-weight:700;
                 color:" & _CorTexto & ";
             }
 
             .insight-desc{
-                margin-top:2px;
-                font-size:9px;
+                margin-top:3px;
+                font-size:11px;
                 font-weight:400;
                 color:#929292;
             }
@@ -1781,7 +1806,7 @@ IF (
             .chart-wrap{
                 flex:1;
                 min-height:0;
-                margin-top:4px;
+                margin-top:5px;
             }
 
             svg{
@@ -1808,10 +1833,11 @@ IF (
             }
 
             .month-hover:hover .hover-guide{
-                opacity:.45;
+                opacity:.5;
             }
 
         </style>
+
 
         <div class='top'>
 
@@ -1842,6 +1868,7 @@ IF (
             "
 
         </div>
+
 
         <div class='chart-wrap'>
 
