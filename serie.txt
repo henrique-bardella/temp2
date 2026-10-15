@@ -18,24 +18,18 @@ VAR _CorROB_Credito       = "#1769B0"
 VAR _CorROB_NaoCredito    = "#162A86"
 VAR _CorTPV               = "#84CBEF"
 VAR _CorFatLiquido        = "#A9B7E8"
-
 VAR _CorBSC               = "#49A942"
 VAR _CorEncanta           = "#245B2B"
-
 VAR _CorPDD               = "#747474"
 
 VAR _CorTexto             = "#252525"
 VAR _CorSub               = "#676767"
 VAR _CorMuted             = "#818181"
-
 VAR _CorGrid              = "#E8E8E8"
 VAR _CorMeta              = "#A84442"
-
 VAR _CorBest              = "#3F7D48"
 VAR _CorWorst             = "#A8524B"
-
 VAR _CorFuncao            = "#C96A3A"
-
 
 /* ============================================================
    FIELD PARAMETER
@@ -49,11 +43,8 @@ VAR _IndicadoresSelecionados =
             'Parâmetro'[Parâmetro Campos],
             'Parâmetro'[Parâmetro Pedido]
         ),
-        "@Indicador",
-            'Parâmetro'[Parâmetro],
-
-        "@Ordem",
-            'Parâmetro'[Parâmetro Pedido]
+        "@Indicador", 'Parâmetro'[Parâmetro],
+        "@Ordem", 'Parâmetro'[Parâmetro Pedido]
     )
 
 VAR _QtdIndicadores =
@@ -67,7 +58,6 @@ VAR _IndicadorUnico =
             [@Indicador]
         )
     )
-
 
 /* ============================================================
    PERÍODOS
@@ -85,7 +75,6 @@ VAR _PeriodosBase =
             'BASE'[MESANO]
         )
     )
-
 
 /* ============================================================
    MÊS NUMÉRICO
@@ -123,14 +112,12 @@ VAR _PeriodosMes =
                 )
     )
 
-
 VAR _PeriodosSort =
     ADDCOLUMNS (
         _PeriodosMes,
 
         "@Sort",
-            VALUE ( 'BASE'[ANO] ) * 100
-                + [@MesNum],
+            VALUE ( 'BASE'[ANO] ) * 100 + [@MesNum],
 
         "@DataRef",
             DATE (
@@ -140,16 +127,12 @@ VAR _PeriodosSort =
             )
     )
 
-
 VAR _Periodos =
     ADDCOLUMNS (
         _PeriodosSort,
 
         "@Pos",
-
-            VAR _Atual =
-                [@Sort]
-
+            VAR _Atual = [@Sort]
             RETURN
                 RANKX (
                     _PeriodosSort,
@@ -160,16 +143,11 @@ VAR _Periodos =
                 )
     )
 
-
 VAR _QtdPeriodos =
     COUNTROWS ( _Periodos )
 
 VAR _DivX =
-    MAX (
-        1,
-        _QtdPeriodos - 1
-    )
-
+    MAX ( 1, _QtdPeriodos - 1 )
 
 /* ============================================================
    DATA DE INÍCIO DA FUNÇÃO
@@ -180,11 +158,9 @@ VAR _DataFuncao =
         'dimGerentes2'[data_funcao]
     )
 
-
 VAR _DataFuncaoMes =
     IF (
         NOT ISBLANK ( _DataFuncao ),
-
         DATE (
             YEAR ( _DataFuncao ),
             MONTH ( _DataFuncao ),
@@ -192,13 +168,11 @@ VAR _DataFuncaoMes =
         )
     )
 
-
 VAR _MinDataSerie =
     MINX (
         _Periodos,
         [@DataRef]
     )
-
 
 VAR _MaxDataSerie =
     MAXX (
@@ -206,12 +180,10 @@ VAR _MaxDataSerie =
         [@DataRef]
     )
 
-
 VAR _DataFuncaoDentro =
     NOT ISBLANK ( _DataFuncaoMes )
         && _DataFuncaoMes >= _MinDataSerie
         && _DataFuncaoMes <= _MaxDataSerie
-
 
 VAR _PosFuncao =
     MINX (
@@ -227,46 +199,27 @@ VAR _PosFuncao =
         [@Pos]
     )
 
-
 /* ============================================================
-   TABELA LONGA
+   DADOS LONGOS
    ============================================================ */
 
 VAR _DadosLongos =
     GENERATE (
         _IndicadoresSelecionados,
 
-        VAR _Nome =
-            [@Indicador]
-
-        VAR _Ordem =
-            [@Ordem]
+        VAR _Nome = [@Indicador]
+        VAR _Ordem = [@Ordem]
 
         VAR _Cor =
             SWITCH (
                 _Nome,
-
-                "Resultado - ROB Crédito",
-                    _CorROB_Credito,
-
-                "Resultado - ROB Não crédito",
-                    _CorROB_NaoCredito,
-
-                "Resultado - TPV",
-                    _CorTPV,
-
-                "Resultado - Fat. Líquido",
-                    _CorFatLiquido,
-
-                "Consistência - BSC",
-                    _CorBSC,
-
-                "Consistência - Encanta/NPS",
-                    _CorEncanta,
-
-                "PDD",
-                    _CorPDD,
-
+                "Resultado - ROB Crédito", _CorROB_Credito,
+                "Resultado - ROB Não crédito", _CorROB_NaoCredito,
+                "Resultado - TPV", _CorTPV,
+                "Resultado - Fat. Líquido", _CorFatLiquido,
+                "Consistência - BSC", _CorBSC,
+                "Consistência - Encanta/NPS", _CorEncanta,
+                "PDD", _CorPDD,
                 "#777777"
             )
 
@@ -318,48 +271,21 @@ VAR _DadosLongos =
                         )
                 ),
 
-                "@IndicadorL",
-                    _Nome,
-
-                "@OrdemL",
-                    _Ordem,
-
-                "@CorL",
-                    _Cor,
-
-                "@PosL",
-                    [@Pos],
-
-                "@SortL",
-                    [@Sort],
-
-                "@AnoL",
-                    VALUE ( 'BASE'[ANO] ),
-
-                "@MesNumL",
-                    [@MesNum],
-
-                "@DataRefL",
-                    [@DataRef],
-
-                "@ValorL",
-                    [@ValorTemp],
-
-                /*
-                   Valor visual.
-
-                   O dado REAL continua em @ValorL.
-
-                   Só a posição gráfica é limitada a ±200%.
-                */
+                "@IndicadorL", _Nome,
+                "@OrdemL", _Ordem,
+                "@CorL", _Cor,
+                "@PosL", [@Pos],
+                "@SortL", [@Sort],
+                "@AnoL", VALUE ( 'BASE'[ANO] ),
+                "@MesNumL", [@MesNum],
+                "@DataRefL", [@DataRef],
+                "@ValorL", [@ValorTemp],
 
                 "@ValorPlotL",
 
-                    VAR _V =
-                        [@ValorTemp]
+                    VAR _V = [@ValorTemp]
 
                     RETURN
-
                         IF (
                             ISBLANK ( _V ),
                             BLANK (),
@@ -374,25 +300,17 @@ VAR _DadosLongos =
             )
     )
 
-
 VAR _DadosValidos =
     FILTER (
         _DadosLongos,
         NOT ISBLANK ( [@ValorL] )
     )
 
-
 VAR _TemDados =
-    COUNTROWS (
-        _DadosValidos
-    ) > 0
-
+    COUNTROWS ( _DadosValidos ) > 0
 
 /* ============================================================
    ESCALA Y
-
-   IMPORTANTE:
-   usa @ValorPlotL, portanto um 900% não distorce o gráfico.
    ============================================================ */
 
 VAR _MinData =
@@ -407,7 +325,6 @@ VAR _MaxData =
         [@ValorPlotL]
     )
 
-
 VAR _MinBase =
     MIN (
         _MinData,
@@ -420,40 +337,30 @@ VAR _MaxBase =
         100
     )
 
-
 VAR _Amplitude =
     MAX (
         15,
         _MaxBase - _MinBase
     )
 
-
 VAR _YMin =
     IF (
         _MinBase < 0,
-
-        _MinBase
-            - _Amplitude * 0.10,
-
+        _MinBase - _Amplitude * 0.10,
         MAX (
             0,
-            _MinBase
-                - _Amplitude * 0.18
+            _MinBase - _Amplitude * 0.18
         )
     )
 
-
 VAR _YMax =
-    _MaxBase
-        + _Amplitude * 0.20
-
+    _MaxBase + _Amplitude * 0.20
 
 VAR _YRange =
     MAX (
         1,
         _YMax - _YMin
     )
-
 
 /* ============================================================
    SÉRIE ÚNICA / INSIGHTS
@@ -465,7 +372,6 @@ VAR _SerieUnica =
         [@IndicadorL] = _IndicadorUnico
     )
 
-
 VAR _MediaAtingimento =
     IF (
         _QtdIndicadores = 1,
@@ -475,13 +381,11 @@ VAR _MediaAtingimento =
         )
     )
 
-
 VAR _UltimoSort =
     MAXX (
         _SerieUnica,
         [@SortL]
     )
-
 
 VAR _UltimoValor =
     MAXX (
@@ -492,9 +396,6 @@ VAR _UltimoValor =
         [@ValorL]
     )
 
-
-/* último período anterior disponível */
-
 VAR _SortAnterior =
     MAXX (
         FILTER (
@@ -504,7 +405,6 @@ VAR _SortAnterior =
         [@SortL]
     )
 
-
 VAR _ValorAnterior =
     MAXX (
         FILTER (
@@ -513,7 +413,6 @@ VAR _ValorAnterior =
         ),
         [@ValorL]
     )
-
 
 VAR _MoM =
     IF (
@@ -527,12 +426,6 @@ VAR _MoM =
         ) * 100
     )
 
-
-/* ============================================================
-   YoY
-   mesmo mês do ano anterior
-   ============================================================ */
-
 VAR _ValorAnoAnterior =
     MAXX (
         FILTER (
@@ -541,7 +434,6 @@ VAR _ValorAnoAnterior =
         ),
         [@ValorL]
     )
-
 
 VAR _YoY =
     IF (
@@ -555,11 +447,6 @@ VAR _YoY =
         ) * 100
     )
 
-
-/* ============================================================
-   % DOS MESES >= 100%
-   ============================================================ */
-
 VAR _QtdMesesMeta =
     COUNTROWS (
         FILTER (
@@ -568,17 +455,14 @@ VAR _QtdMesesMeta =
         )
     )
 
-
 VAR _PctMesesMeta =
     IF (
         _QtdIndicadores = 1,
-
         DIVIDE (
             _QtdMesesMeta,
             COUNTROWS ( _SerieUnica )
         ) * 100
     )
-
 
 /* ============================================================
    MÁXIMO / MÍNIMO
@@ -593,7 +477,6 @@ VAR _ValorMax =
         )
     )
 
-
 VAR _ValorMin =
     IF (
         _QtdIndicadores = 1,
@@ -602,7 +485,6 @@ VAR _ValorMin =
             [@ValorL]
         )
     )
-
 
 VAR _SortMax =
     MINX (
@@ -613,7 +495,6 @@ VAR _SortMax =
         [@SortL]
     )
 
-
 VAR _SortMin =
     MINX (
         FILTER (
@@ -623,9 +504,8 @@ VAR _SortMin =
         [@SortL]
     )
 
-
 /* ============================================================
-   INSIGHTS DO CABEÇALHO
+   INSIGHTS
    ============================================================ */
 
 VAR _CorMoM =
@@ -635,14 +515,12 @@ VAR _CorMoM =
         _CorWorst
     )
 
-
 VAR _CorYoY =
     IF (
         _YoY >= 0,
         _CorBest,
         _CorWorst
     )
-
 
 VAR _Insights =
     IF (
@@ -652,104 +530,61 @@ VAR _Insights =
         <div class='insights'>
 
             <div class='insight-card'>
-                <div class='insight-label'>ATINGIMENTO MÉDIO</div>
-                <div class='insight-value'>"
-                    &
-                    FORMAT (
-                        _MediaAtingimento,
-                        "0.0"
-                    )
-                    &
-                    "%
+                <div class='insight-label'>
+                    ATINGIMENTO MÉDIO
+                </div>
+                <div class='insight-value'>
+                    " & FORMAT ( _MediaAtingimento, "0.0" ) & "%
                 </div>
             </div>
 
-
             <div class='insight-card'>
-                <div class='insight-label'>MOM</div>
-                <div
-                    class='insight-value'
-                    style='color:"
-                        &
-                        _CorMoM
-                        &
-                    ";'
-                >"
-                    &
+                <div class='insight-label'>
+                    MOM
+                </div>
+                <div class='insight-value'
+                    style='color:" & _CorMoM & ";'>
+                    " &
                     IF (
                         ISBLANK ( _MoM ),
                         "—",
-                        IF (
-                            _MoM >= 0,
-                            "+",
-                            ""
-                        )
-                            &
-                            FORMAT (
-                                _MoM,
-                                "0.0"
-                            )
-                            &
-                            "%"
+                        IF ( _MoM >= 0, "+", "" )
+                            & FORMAT ( _MoM, "0.0" ) & "%"
                     )
-                    &
-                "</div>
-
+                    & "
+                </div>
                 <div class='insight-desc'>
                     vs mês anterior
                 </div>
             </div>
 
-
             <div class='insight-card'>
-                <div class='insight-label'>YOY</div>
-                <div
-                    class='insight-value'
-                    style='color:"
-                        &
-                        _CorYoY
-                        &
-                    ";'
-                >"
-                    &
+                <div class='insight-label'>
+                    YOY
+                </div>
+                <div class='insight-value'
+                    style='color:" & _CorYoY & ";'>
+                    " &
                     IF (
                         ISBLANK ( _YoY ),
                         "—",
-                        IF (
-                            _YoY >= 0,
-                            "+",
-                            ""
-                        )
-                            &
-                            FORMAT (
-                                _YoY,
-                                "0.0"
-                            )
-                            &
-                            "%"
+                        IF ( _YoY >= 0, "+", "" )
+                            & FORMAT ( _YoY, "0.0" ) & "%"
                     )
-                    &
-                "</div>
-
+                    & "
+                </div>
                 <div class='insight-desc'>
                     vs mesmo mês ano anterior
                 </div>
             </div>
 
-
             <div class='insight-card'>
-                <div class='insight-label'>MESES NA META</div>
-
-                <div class='insight-value'>"
-                    &
-                    FORMAT (
-                        _PctMesesMeta,
-                        "0"
-                    )
-                    &
-                    "%
+                <div class='insight-label'>
+                    MESES NA META
                 </div>
-
+                <div class='insight-value'>
+                    " & FORMAT ( _PctMesesMeta, "0" ) & "%
+                </div>
                 <div class='insight-desc'>
                     atingimento ≥ 100%
                 </div>
@@ -758,7 +593,6 @@ VAR _Insights =
         </div>
         "
     )
-
 
 /* ============================================================
    GRID
@@ -772,8 +606,7 @@ VAR _Grid =
             1
         ),
 
-        VAR _I =
-            [Value]
+        VAR _I = [Value]
 
         VAR _V =
             _YMin
@@ -791,7 +624,6 @@ VAR _Grid =
                 ) * _ChartH
 
         RETURN
-
             "
             <line
                 x1='" & FORMAT ( _PadLeft, "0.0", "en-US" ) & "'
@@ -803,13 +635,11 @@ VAR _Grid =
                 stroke-dasharray='2 4'
             />
             ",
-
         ""
     )
 
-
 /* ============================================================
-   LINHA META
+   META 100%
    ============================================================ */
 
 VAR _Y100 =
@@ -819,7 +649,6 @@ VAR _Y100 =
             100 - _YMin,
             _YRange
         ) * _ChartH
-
 
 VAR _LinhaMeta =
     "
@@ -847,7 +676,6 @@ VAR _LinhaMeta =
     </text>
     "
 
-
 /* ============================================================
    INÍCIO DA FUNÇÃO
    ============================================================ */
@@ -864,17 +692,11 @@ VAR _MarcadorFuncao =
                     _DivX
                 ) * _ChartW
 
-
-        VAR _BoxW =
-            170
-
-        VAR _BoxH =
-            40
-
+        VAR _BoxW = 170
+        VAR _BoxH = 40
 
         VAR _BoxXOriginal =
             _X - DIVIDE ( _BoxW, 2 )
-
 
         VAR _BoxX =
             MAX (
@@ -885,14 +707,10 @@ VAR _MarcadorFuncao =
                 )
             )
 
-
         VAR _BoxCenter =
-            _BoxX
-                + DIVIDE ( _BoxW, 2 )
-
+            _BoxX + DIVIDE ( _BoxW, 2 )
 
         RETURN
-
             "
             <line
                 x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -905,14 +723,12 @@ VAR _MarcadorFuncao =
                 opacity='.75'
             />
 
-
             <circle
                 cx='" & FORMAT ( _X, "0.0", "en-US" ) & "'
                 cy='" & FORMAT ( _PadTop + 4, "0", "en-US" ) & "'
                 r='4.5'
                 fill='" & _CorFuncao & "'
             />
-
 
             <rect
                 x='" & FORMAT ( _BoxX, "0.0", "en-US" ) & "'
@@ -924,7 +740,6 @@ VAR _MarcadorFuncao =
                 stroke='" & _CorFuncao & "'
                 stroke-width='1'
             />
-
 
             <text
                 x='" & FORMAT ( _BoxCenter, "0.0", "en-US" ) & "'
@@ -938,7 +753,6 @@ VAR _MarcadorFuncao =
                 Início da função
             </text>
 
-
             <text
                 x='" & FORMAT ( _BoxCenter, "0.0", "en-US" ) & "'
                 y='35'
@@ -948,18 +762,10 @@ VAR _MarcadorFuncao =
                 font-weight='500'
                 fill='" & _CorSub & "'
             >
-                "
-                    &
-                    FORMAT (
-                        _DataFuncao,
-                        "dd/MM/yyyy"
-                    )
-                    &
-                "
+                " & FORMAT ( _DataFuncao, "dd/MM/yyyy" ) & "
             </text>
             "
     )
-
 
 /* ============================================================
    EIXO X
@@ -994,7 +800,6 @@ VAR _MesesSVG =
             )
 
         RETURN
-
             "
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1008,12 +813,10 @@ VAR _MesesSVG =
                 " & _Mes & "
             </text>
             ",
-
         "",
         [@Sort],
         ASC
     )
-
 
 /* ============================================================
    ANOS
@@ -1027,7 +830,6 @@ VAR _Anos =
                 VALUE ( 'BASE'[ANO] )
         )
     )
-
 
 VAR _AnosSVG =
     CONCATENATEX (
@@ -1075,7 +877,6 @@ VAR _AnosSVG =
             )
 
         RETURN
-
             "
             <text
                 x='" & FORMAT ( _XC, "0.0", "en-US" ) & "'
@@ -1089,10 +890,8 @@ VAR _AnosSVG =
                 " & FORMAT ( _AnoAtual, "0" ) & "
             </text>
             ",
-
         ""
     )
-
 
 /* ============================================================
    LEGENDA
@@ -1102,8 +901,7 @@ VAR _Legenda =
     CONCATENATEX (
         _IndicadoresSelecionados,
 
-        VAR _Nome =
-            [@Indicador]
+        VAR _Nome = [@Indicador]
 
         VAR _Cor =
             SWITCH (
@@ -1119,25 +917,19 @@ VAR _Legenda =
             )
 
         RETURN
-
             "
             <div class='legend-item'>
                 <span
                     class='legend-line'
                     style='border-color:" & _Cor & ";'
                 ></span>
-
-                <span>"
-                    & _Nome &
-                "</span>
+                <span>" & _Nome & "</span>
             </div>
             ",
-
         "",
         [@Ordem],
         ASC
     )
-
 
 /* ============================================================
    SÉRIES
@@ -1147,11 +939,8 @@ VAR _SeriesSVG =
     CONCATENATEX (
         _IndicadoresSelecionados,
 
-        VAR _Nome =
-            [@Indicador]
-
-        VAR _Ordem =
-            [@Ordem]
+        VAR _Nome = [@Indicador]
+        VAR _Ordem = [@Ordem]
 
         VAR _Cor =
             SWITCH (
@@ -1166,17 +955,11 @@ VAR _SeriesSVG =
                 "#777777"
             )
 
-
         VAR _Serie =
             FILTER (
                 _DadosValidos,
                 [@IndicadorL] = _Nome
             )
-
-
-        /* ====================================================
-           OFFSET DOS LABELS
-           ==================================================== */
 
         VAR _Offset =
             SWITCH (
@@ -1190,9 +973,8 @@ VAR _SeriesSVG =
                 -16
             )
 
-
         /* ====================================================
-           PATH SUAVE EM BÉZIER
+           PATH SUAVE
            ==================================================== */
 
         VAR _Path =
@@ -1220,7 +1002,6 @@ VAR _SeriesSVG =
                             _YRange
                         ) * _ChartH
 
-
                 VAR _PrevPos =
                     MAXX (
                         FILTER (
@@ -1229,7 +1010,6 @@ VAR _SeriesSVG =
                         ),
                         [@PosL]
                     )
-
 
                 VAR _PrevValor =
                     MAXX (
@@ -1240,14 +1020,12 @@ VAR _SeriesSVG =
                         [@ValorPlotL]
                     )
 
-
                 VAR _PrevX =
                     _PadLeft
                         + DIVIDE (
                             _PrevPos - 1,
                             _DivX
                         ) * _ChartW
-
 
                 VAR _PrevY =
                     _PadTop
@@ -1257,29 +1035,22 @@ VAR _SeriesSVG =
                             _YRange
                         ) * _ChartH
 
-
                 VAR _DX =
                     _X - _PrevX
-
 
                 VAR _CP1X =
                     _PrevX + _DX * 0.38
 
-
                 VAR _CP1Y =
                     _PrevY
-
 
                 VAR _CP2X =
                     _X - _DX * 0.38
 
-
                 VAR _CP2Y =
                     _Y
 
-
                 RETURN
-
                     IF (
                         ISBLANK ( _PrevPos ),
 
@@ -1307,9 +1078,8 @@ VAR _SeriesSVG =
                 ASC
             )
 
-
         /* ====================================================
-           PONTOS + LABEL + TOOLTIP
+           PONTOS + LABELS APENAS COM 1 INDICADOR
            ==================================================== */
 
         VAR _Pontos =
@@ -1340,25 +1110,6 @@ VAR _SeriesSVG =
                             _YRange
                         ) * _ChartH
 
-
-                VAR _Mes =
-                    SWITCH (
-                        [@MesNumL],
-                        1, "jan",
-                        2, "fev",
-                        3, "mar",
-                        4, "abr",
-                        5, "mai",
-                        6, "jun",
-                        7, "jul",
-                        8, "ago",
-                        9, "set",
-                        10, "out",
-                        11, "nov",
-                        12, "dez"
-                    )
-
-
                 VAR _TextoValor =
                     IF (
                         _Valor > 200,
@@ -1370,28 +1121,14 @@ VAR _SeriesSVG =
                         )
                     )
 
-
-                VAR _Tooltip =
-                    _Mes
-                        & "/"
-                        & FORMAT ( [@AnoL], "0" )
-                        & " • "
-                        & _Nome
-                        & ": "
-                        & FORMAT ( _Valor, "0.#" )
-                        & "%"
-
+                VAR _LabelY =
+                    _Y + _Offset
 
                 VAR _BoxW =
                     MAX (
                         44,
                         LEN ( _TextoValor ) * 8 + 14
                     )
-
-
-                VAR _LabelY =
-                    _Y + _Offset
-
 
                 RETURN
 
@@ -1403,55 +1140,45 @@ VAR _SeriesSVG =
                         fill='" & _Cor & "'
                         stroke='white'
                         stroke-width='1.5'
-                    >
-                        <title>"
-                            & _Tooltip &
-                        "</title>
-                    </circle>
-
-
-                    <rect
-                        x='" & FORMAT ( _X - _BoxW / 2, "0.0", "en-US" ) & "'
-                        y='" & FORMAT ( _LabelY - 15, "0.0", "en-US" ) & "'
-                        width='" & FORMAT ( _BoxW, "0.0", "en-US" ) & "'
-                        height='21'
-                        rx='5'
-                        fill='white'
-                        opacity='.83'
                     />
+                    "
 
+                    &
 
-                    <text
-                        x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                        y='" & FORMAT ( _LabelY, "0.0", "en-US" ) & "'
-                        text-anchor='middle'
-                        font-family='Segoe UI,Arial,sans-serif'
-                        font-size='13'
-                        font-weight='700'
-                        fill='" & _Cor & "'
-                    >
-                        " & _TextoValor & "
-                    </text>
+                    IF (
+                        _QtdIndicadores = 1,
 
+                        "
+                        <rect
+                            x='" & FORMAT ( _X - _BoxW / 2, "0.0", "en-US" ) & "'
+                            y='" & FORMAT ( _LabelY - 15, "0.0", "en-US" ) & "'
+                            width='" & FORMAT ( _BoxW, "0.0", "en-US" ) & "'
+                            height='21'
+                            rx='5'
+                            fill='white'
+                            opacity='.86'
+                        />
 
-                    <circle
-                        cx='" & FORMAT ( _X, "0.0", "en-US" ) & "'
-                        cy='" & FORMAT ( _Y, "0.0", "en-US" ) & "'
-                        r='14'
-                        fill='transparent'
-                        stroke='none'
-                    >
-                        <title>"
-                            & _Tooltip &
-                        "</title>
-                    </circle>
-                    ",
+                        <text
+                            x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
+                            y='" & FORMAT ( _LabelY, "0.0", "en-US" ) & "'
+                            text-anchor='middle'
+                            font-family='Segoe UI,Arial,sans-serif'
+                            font-size='13'
+                            font-weight='700'
+                            fill='" & _Cor & "'
+                        >
+                            " & _TextoValor & "
+                        </text>
+                        ",
+
+                        ""
+                    ),
 
                 "",
                 [@SortL],
                 ASC
             )
-
 
         RETURN
 
@@ -1475,10 +1202,8 @@ VAR _SeriesSVG =
         ASC
     )
 
-
 /* ============================================================
    CALLOUT MÁXIMO
-   Apenas quando há UM indicador.
    ============================================================ */
 
 VAR _CalloutMax =
@@ -1524,7 +1249,6 @@ VAR _CalloutMax =
                     _YRange
                 ) * _ChartH
 
-
         VAR _PillY =
             MAX (
                 48,
@@ -1532,7 +1256,6 @@ VAR _CalloutMax =
             )
 
         RETURN
-
             "
             <line
                 x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1545,7 +1268,6 @@ VAR _CalloutMax =
                 opacity='.45'
             />
 
-
             <rect
                 x='" & FORMAT ( _X - 40, "0.0", "en-US" ) & "'
                 y='" & FORMAT ( _PillY, "0.0", "en-US" ) & "'
@@ -1556,7 +1278,6 @@ VAR _CalloutMax =
                 stroke='" & _CorBest & "'
                 stroke-width='1'
             />
-
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1569,7 +1290,6 @@ VAR _CalloutMax =
             >
                 " & FORMAT ( _ValorMax, "0.#" ) & "%
             </text>
-
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1585,7 +1305,6 @@ VAR _CalloutMax =
             </text>
             "
     )
-
 
 /* ============================================================
    CALLOUT MÍNIMO
@@ -1635,7 +1354,6 @@ VAR _CalloutMin =
                     _YRange
                 ) * _ChartH
 
-
         VAR _PillY =
             MIN (
                 _PadTop + _ChartH - 28,
@@ -1643,7 +1361,6 @@ VAR _CalloutMin =
             )
 
         RETURN
-
             "
             <line
                 x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1656,7 +1373,6 @@ VAR _CalloutMin =
                 opacity='.45'
             />
 
-
             <rect
                 x='" & FORMAT ( _X - 40, "0.0", "en-US" ) & "'
                 y='" & FORMAT ( _PillY, "0.0", "en-US" ) & "'
@@ -1667,7 +1383,6 @@ VAR _CalloutMin =
                 stroke='" & _CorWorst & "'
                 stroke-width='1'
             />
-
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1680,7 +1395,6 @@ VAR _CalloutMin =
             >
                 " & FORMAT ( _ValorMin, "0.#" ) & "%
             </text>
-
 
             <text
                 x='" & FORMAT ( _X, "0.0", "en-US" ) & "'
@@ -1697,6 +1411,237 @@ VAR _CalloutMin =
             "
     )
 
+/* ============================================================
+   TOOLTIP MENSAL EM CSS/SVG
+   ============================================================ */
+
+VAR _LarguraPeriodo =
+    DIVIDE (
+        _ChartW,
+        MAX (
+            1,
+            _QtdPeriodos - 1
+        )
+    )
+
+VAR _HoverMesesSVG =
+    CONCATENATEX (
+        _Periodos,
+
+        VAR _Pos =
+            [@Pos]
+
+        VAR _Sort =
+            [@Sort]
+
+        VAR _Ano =
+            VALUE ( 'BASE'[ANO] )
+
+        VAR _MesNum =
+            [@MesNum]
+
+        VAR _Mes =
+            SWITCH (
+                _MesNum,
+                1, "Jan",
+                2, "Fev",
+                3, "Mar",
+                4, "Abr",
+                5, "Mai",
+                6, "Jun",
+                7, "Jul",
+                8, "Ago",
+                9, "Set",
+                10, "Out",
+                11, "Nov",
+                12, "Dez"
+            )
+
+        VAR _X =
+            _PadLeft
+                + DIVIDE (
+                    _Pos - 1,
+                    _DivX
+                ) * _ChartW
+
+        VAR _HitX =
+            MAX (
+                _PadLeft,
+                _X - _LarguraPeriodo / 2
+            )
+
+        VAR _HitW =
+            MIN (
+                _LarguraPeriodo,
+                _W - _PadRight - _HitX
+            )
+
+        VAR _DadosMes =
+            FILTER (
+                _DadosValidos,
+                [@SortL] = _Sort
+            )
+
+        VAR _QtdItens =
+            COUNTROWS ( _DadosMes )
+
+        VAR _TipW =
+            290
+
+        VAR _TipH =
+            52 + _QtdItens * 23
+
+        VAR _TipXOriginal =
+            _X + 14
+
+        VAR _TipX =
+            IF (
+                _TipXOriginal + _TipW > _W - _PadRight,
+                _X - _TipW - 14,
+                _TipXOriginal
+            )
+
+        VAR _TipY =
+            _PadTop + 10
+
+        VAR _LinhasTooltip =
+            CONCATENATEX (
+                _DadosMes,
+
+                VAR _Nome =
+                    [@IndicadorL]
+
+                VAR _Valor =
+                    [@ValorL]
+
+                VAR _Cor =
+                    [@CorL]
+
+                VAR _Ordem =
+                    [@OrdemL]
+
+                VAR _IndexLinha =
+                    RANKX (
+                        _DadosMes,
+                        [@OrdemL],
+                        _Ordem,
+                        ASC,
+                        DENSE
+                    )
+
+                VAR _YLinha =
+                    _TipY
+                        + 51
+                        + ( _IndexLinha - 1 ) * 23
+
+                RETURN
+                    "
+                    <circle
+                        cx='" & FORMAT ( _TipX + 16, "0.0", "en-US" ) & "'
+                        cy='" & FORMAT ( _YLinha - 4, "0.0", "en-US" ) & "'
+                        r='4'
+                        fill='" & _Cor & "'
+                    />
+
+                    <text
+                        x='" & FORMAT ( _TipX + 28, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _YLinha, "0.0", "en-US" ) & "'
+                        font-family='Segoe UI,Arial,sans-serif'
+                        font-size='11'
+                        font-weight='500'
+                        fill='#505050'
+                    >
+                        " & _Nome & "
+                    </text>
+
+                    <text
+                        x='" & FORMAT ( _TipX + _TipW - 14, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _YLinha, "0.0", "en-US" ) & "'
+                        text-anchor='end'
+                        font-family='Segoe UI,Arial,sans-serif'
+                        font-size='12'
+                        font-weight='700'
+                        fill='" & _Cor & "'
+                    >
+                        " & FORMAT ( _Valor, "0.#" ) & "%
+                    </text>
+                    ",
+                "",
+                [@OrdemL],
+                ASC
+            )
+
+        RETURN
+            "
+            <g class='month-hover'>
+
+                <rect
+                    x='" & FORMAT ( _HitX, "0.0", "en-US" ) & "'
+                    y='" & FORMAT ( _PadTop, "0.0", "en-US" ) & "'
+                    width='" & FORMAT ( _HitW, "0.0", "en-US" ) & "'
+                    height='" & FORMAT ( _ChartH, "0.0", "en-US" ) & "'
+                    fill='transparent'
+                    pointer-events='all'
+                />
+
+                <line
+                    class='hover-guide'
+                    x1='" & FORMAT ( _X, "0.0", "en-US" ) & "'
+                    x2='" & FORMAT ( _X, "0.0", "en-US" ) & "'
+                    y1='" & FORMAT ( _PadTop, "0", "en-US" ) & "'
+                    y2='" & FORMAT ( _PadTop + _ChartH, "0", "en-US" ) & "'
+                    stroke='#8F8F8F'
+                    stroke-width='1'
+                    stroke-dasharray='3 4'
+                />
+
+                <g class='month-tooltip'>
+
+                    <rect
+                        x='" & FORMAT ( _TipX, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _TipY, "0.0", "en-US" ) & "'
+                        width='" & FORMAT ( _TipW, "0", "en-US" ) & "'
+                        height='" & FORMAT ( _TipH, "0", "en-US" ) & "'
+                        rx='10'
+                        fill='#FFFFFF'
+                        stroke='#E4E4E4'
+                        stroke-width='1'
+                    />
+
+                    <text
+                        x='" & FORMAT ( _TipX + 14, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _TipY + 21, "0.0", "en-US" ) & "'
+                        font-family='Segoe UI,Arial,sans-serif'
+                        font-size='13'
+                        font-weight='700'
+                        fill='#252525'
+                    >
+                        " & _Mes & "/" & FORMAT ( _Ano, "0" ) & "
+                    </text>
+
+                    <text
+                        x='" & FORMAT ( _TipX + 14, "0.0", "en-US" ) & "'
+                        y='" & FORMAT ( _TipY + 37, "0.0", "en-US" ) & "'
+                        font-family='Segoe UI,Arial,sans-serif'
+                        font-size='10'
+                        font-weight='400'
+                        fill='#8A8A8A'
+                    >
+                        Percentuais de atingimento
+                    </text>
+
+                    "
+                    & _LinhasTooltip &
+                    "
+
+                </g>
+
+            </g>
+            ",
+        "",
+        [@Sort],
+        ASC
+    )
 
 /* ============================================================
    HTML FINAL
@@ -1739,16 +1684,13 @@ IF (
                 font-family:'Segoe UI',Arial,sans-serif;
                 color:" & _CorTexto & ";
                 overflow:hidden;
-
                 display:flex;
                 flex-direction:column;
             }
 
-
             .top{
                 flex-shrink:0;
             }
-
 
             .section-title{
                 font-size:16px;
@@ -1756,7 +1698,6 @@ IF (
                 font-weight:700;
                 color:" & _CorTexto & ";
             }
-
 
             .title{
                 margin-top:5px;
@@ -1766,7 +1707,6 @@ IF (
                 color:" & _CorTexto & ";
             }
 
-
             .subtitle{
                 margin-top:3px;
                 font-size:14px;
@@ -1774,7 +1714,6 @@ IF (
                 font-weight:400;
                 color:" & _CorSub & ";
             }
-
 
             .legend{
                 display:flex;
@@ -1784,100 +1723,95 @@ IF (
                 margin-top:11px;
             }
 
-
             .legend-item{
                 display:flex;
                 align-items:center;
                 gap:6px;
-
                 font-size:14px;
                 font-weight:500;
-
                 color:#4C4C4C;
-
                 white-space:nowrap;
             }
-
 
             .legend-line{
                 display:inline-block;
                 width:17px;
                 height:0;
-
                 border-top-width:3px;
                 border-top-style:dashed;
             }
-
 
             .insights{
                 display:flex;
                 align-items:stretch;
                 gap:8px;
-
                 margin-top:10px;
             }
-
 
             .insight-card{
                 min-width:132px;
                 padding:7px 11px;
-
                 border:1px solid #EEEEEE;
                 border-radius:8px;
-
                 background:#FAFAFA;
             }
-
 
             .insight-label{
                 font-size:9px;
                 font-weight:700;
                 letter-spacing:.8px;
-
                 color:#8A8A8A;
             }
 
-
             .insight-value{
                 margin-top:2px;
-
                 font-size:15px;
                 line-height:1.1;
                 font-weight:700;
-
                 color:" & _CorTexto & ";
             }
 
-
             .insight-desc{
                 margin-top:2px;
-
                 font-size:9px;
                 font-weight:400;
-
                 color:#929292;
             }
-
 
             .chart-wrap{
                 flex:1;
                 min-height:0;
-
                 margin-top:4px;
             }
-
 
             svg{
                 width:100%;
                 height:100%;
-
                 display:block;
-
                 overflow:visible;
             }
 
-        </style>
+            .month-hover .month-tooltip{
+                opacity:0;
+                pointer-events:none;
+                transition:opacity .12s ease;
+            }
 
+            .month-hover .hover-guide{
+                opacity:0;
+                pointer-events:none;
+                transition:opacity .12s ease;
+            }
+
+            .month-hover:hover .month-tooltip{
+                opacity:1;
+            }
+
+            .month-hover:hover .hover-guide{
+                opacity:.45;
+            }
+
+        </style>
 
         <div class='top'>
 
@@ -1885,16 +1819,13 @@ IF (
                 Histórico dos indicadores
             </div>
 
-
             <div class='title'>
                 Percentuais de Atingimentos
             </div>
 
-
             <div class='subtitle'>
                 Atingimentos dos indicadores por mês e Ano
             </div>
-
 
             <div class='legend'>
                 "
@@ -1904,7 +1835,6 @@ IF (
                 "
             </div>
 
-
             "
                 &
                 _Insights
@@ -1912,7 +1842,6 @@ IF (
             "
 
         </div>
-
 
         <div class='chart-wrap'>
 
@@ -1934,7 +1863,6 @@ IF (
                     )
                     &
                 "'
-
                 preserveAspectRatio='xMidYMid meet'
             >
 
@@ -1955,6 +1883,8 @@ IF (
                     _MesesSVG
                     &
                     _AnosSVG
+                    &
+                    _HoverMesesSVG
                     &
                 "
 
