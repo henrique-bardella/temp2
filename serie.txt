@@ -1,10 +1,10 @@
 Histórico Indicadores HTML =
-VAR _W = 1200
-VAR _SvgH = 430
+VAR _W = 1400
+VAR _SvgH = 355
 VAR _PadLeft = 42
 VAR _PadRight = 18
-VAR _PadTop = 65
-VAR _PadBottom = 70
+VAR _PadTop = 60
+VAR _PadBottom = 68
 VAR _ChartW = _W - _PadLeft - _PadRight
 VAR _ChartH = _SvgH - _PadTop - _PadBottom
 
@@ -236,42 +236,6 @@ VAR _TextoComparativo =
             )
         )
     )
-VAR _ComparativoPeriodosHTML =
-    IF (
-        _QtdIndicadores = 1,
-        "<div class='period-compare'>" &
-            "<div class='period-header'>" &
-                "<span class='period-heading'>COMPARATIVO DE PERÍODOS</span>" &
-                "<span class='period-reference'>Média simples mensal · ref. " &
-                    FORMAT ( _DataUltima, "mmm/yyyy" ) & "</span>" &
-            "</div>" &
-            "<div class='period-metrics'>" &
-                "<div class='period-metric'>" &
-                    "<span>YTD</span>" &
-                    "<strong>" & IF ( _CompletoYTD, FORMAT ( _MediaYTD, "0.0" ) & "%", "—" ) & "</strong>" &
-                    "<small>" & FORMAT ( _QtdYTD, "0" ) & "/" & FORMAT ( _MesesEsperadosYTD, "0" ) & " meses</small>" &
-                "</div>" &
-                "<div class='period-metric'>" &
-                    "<span>12 MESES MÓVEIS</span>" &
-                    "<strong>" & IF ( _Completo12M, FORMAT ( _Media12M, "0.0" ) & "%", "—" ) & "</strong>" &
-                    "<small>" & FORMAT ( _Qtd12M, "0" ) & "/12 meses</small>" &
-                "</div>" &
-                "<div class='period-metric period-delta'>" &
-                    "<span>DIFERENÇA YTD − 12M</span>" &
-                    "<strong style='color:" & _CorDeltaPeriodos & ";'>" &
-                        IF (
-                            ISBLANK ( _DeltaYTD12M ),
-                            "—",
-                            IF ( _DeltaYTD12M > 0, "+", "" ) &
-                                FORMAT ( _DeltaYTD12M, "0.0" ) & " p.p."
-                        ) &
-                    "</strong>" &
-                    "<small>" & _TextoComparativo & "</small>" &
-                "</div>" &
-            "</div>" &
-        "</div>"
-    )
-
 /* 8. EXTREMOS */
 VAR _ValorMax = IF ( _QtdIndicadores = 1, MAXX ( _SerieUnica, [@ValorL] ) )
 VAR _ValorMin = IF ( _QtdIndicadores = 1, MINX ( _SerieUnica, [@ValorL] ) )
@@ -281,34 +245,52 @@ VAR _SortMin = MINX ( FILTER ( _SerieUnica, [@ValorL] = _ValorMin ), [@SortL] )
 /* 9. CARDS */
 VAR _CorMoM = IF ( _MoM >= 0, _CorBest, _CorWorst )
 VAR _CorYoY = IF ( _YoY >= 0, _CorBest, _CorWorst )
+/* 9. INSIGHTS EM UMA ÚNICA FAIXA - SETE CARDS */
 VAR _Insights =
     IF (
         _QtdIndicadores = 1,
-        "<div class='insights'>
-            <div class='insight-card'>
-                <div class='insight-label'>ATINGIMENTO MÉDIO</div>
-                <div class='insight-value'>" & FORMAT ( _MediaAtingimento, "0.0" ) & "%</div>
-            </div>
-            <div class='insight-card'>
-                <div class='insight-label'>VARIAÇÃO MENSAL</div>
-                <div class='insight-value' style='color:" & _CorMoM & ";'>"
-                    & IF ( ISBLANK ( _MoM ), "—", IF ( _MoM >= 0, "+", "" ) & FORMAT ( _MoM, "0.0" ) & " p.p." ) &
-                "</div>
-                <div class='insight-desc'>MoM · vs mês anterior</div>
-            </div>
-            <div class='insight-card'>
-                <div class='insight-label'>VARIAÇÃO ANUAL</div>
-                <div class='insight-value' style='color:" & _CorYoY & ";'>"
-                    & IF ( ISBLANK ( _YoY ), "—", IF ( _YoY >= 0, "+", "" ) & FORMAT ( _YoY, "0.0" ) & " p.p." ) &
-                "</div>
-                <div class='insight-desc'>YoY · vs mesmo mês do ano anterior</div>
-            </div>
-            <div class='insight-card'>
-                <div class='insight-label'>MESES NA META</div>
-                <div class='insight-value'>" & FORMAT ( _PctMesesMeta, "0" ) & "%</div>
-                <div class='insight-desc'>atingimento ≥ 100%</div>
-            </div>
-        </div>"
+        "<div class='insights'>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>ATINGIMENTO MÉDIO</div>" &
+            "<div class='insight-value'>" & FORMAT ( _MediaAtingimento, "0.0" ) & "%</div>" &
+            "<div class='insight-desc'>Média mensal</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>VARIAÇÃO MENSAL</div>" &
+            "<div class='insight-value' style='color:" & _CorMoM & ";'>" &
+              IF ( ISBLANK ( _MoM ), "—", IF ( _MoM >= 0, "+", "" ) & FORMAT ( _MoM, "0.0" ) & " p.p." ) &
+            "</div><div class='insight-desc'>MoM · mês anterior</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>VARIAÇÃO ANUAL</div>" &
+            "<div class='insight-value' style='color:" & _CorYoY & ";'>" &
+              IF ( ISBLANK ( _YoY ), "—", IF ( _YoY >= 0, "+", "" ) & FORMAT ( _YoY, "0.0" ) & " p.p." ) &
+            "</div><div class='insight-desc'>YoY · ano anterior</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>MESES NA META</div>" &
+            "<div class='insight-value'>" & FORMAT ( _PctMesesMeta, "0" ) & "%</div>" &
+            "<div class='insight-desc'>Atingimento ≥ 100%</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>YTD</div>" &
+            "<div class='insight-value'>" & IF ( _CompletoYTD, FORMAT ( _MediaYTD, "0.0" ) & "%", "—" ) & "</div>" &
+            "<div class='insight-desc'>" & FORMAT ( _QtdYTD, "0" ) & "/" & FORMAT ( _MesesEsperadosYTD, "0" ) & " meses</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>12 MESES MÓVEIS</div>" &
+            "<div class='insight-value'>" & IF ( _Completo12M, FORMAT ( _Media12M, "0.0" ) & "%", "—" ) & "</div>" &
+            "<div class='insight-desc'>" & FORMAT ( _Qtd12M, "0" ) & "/12 meses</div>" &
+          "</div>" &
+          "<div class='insight-card'>" &
+            "<div class='insight-label'>DIF. YTD − 12M</div>" &
+            "<div class='insight-value' style='color:" & _CorDeltaPeriodos & ";'>" &
+              IF ( ISBLANK ( _DeltaYTD12M ), "—", IF ( _DeltaYTD12M > 0, "+", "" ) & FORMAT ( _DeltaYTD12M, "0.0" ) & " p.p." ) &
+            "</div>" &
+            "<div class='insight-desc'>" & IF ( ISBLANK ( _DeltaYTD12M ), "Janela incompleta", IF ( _DeltaYTD12M > 0, "YTD superior", IF ( _DeltaYTD12M < 0, "YTD inferior", "Em linha" ) ) ) & "</div>" &
+          "</div>" &
+        "</div>" &
+        "<div class='insight-note'>YTD e 12M: média simples dos percentuais mensais · referência " & FORMAT ( _DataUltima, "mmm/yyyy" ) & ". Não representa realizado acumulado ÷ orçado acumulado.</div>"
     )
 
 /* 10. GRID */
@@ -702,30 +684,21 @@ RETURN
         "<div class='historico'>
         <style>
             *{box-sizing:border-box}
-            .historico{width:100%;height:640px;padding:14px 12px 10px;background:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;color:" & _CorTexto & ";overflow:hidden;display:flex;flex-direction:column}
+            .historico{width:100%;height:640px;padding:10px 12px 8px;background:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;color:" & _CorTexto & ";overflow:hidden;display:flex;flex-direction:column}
             .top{flex-shrink:0}
-            .section-title{font-size:24px;line-height:1.15;font-weight:700;color:" & _CorTexto & "}
-            .title{margin-top:6px;font-size:26px;line-height:1.2;font-weight:800;color:" & _CorTexto & "}
-            .subtitle{margin-top:5px;font-size:18px;line-height:1.3;font-weight:500;color:" & _CorSub & "}
-            .legend{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;margin-top:13px}
+            .section-title{font-size:21px;line-height:1.15;font-weight:700;color:" & _CorTexto & "}
+            .title{margin-top:4px;font-size:24px;line-height:1.2;font-weight:800;color:" & _CorTexto & "}
+            .subtitle{margin-top:3px;font-size:16px;line-height:1.3;font-weight:500;color:" & _CorSub & "}
+            .legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:7px}
             .legend-item{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#4C4C4C;white-space:nowrap}
             .legend-line{display:inline-block;width:20px;height:0;border-top-width:3px;border-top-style:dashed}
-            .insights{display:flex;align-items:stretch;flex-wrap:wrap;gap:10px;margin-top:12px}
-            .insight-card{min-width:165px;padding:10px 15px;border:1px solid #EEEEEE;border-radius:9px;background:#FAFAFA}
-            .insight-label{font-size:13px;font-weight:700;letter-spacing:.7px;color:#777777}
-            .insight-value{margin-top:4px;font-size:22px;line-height:1.1;font-weight:800;color:" & _CorTexto & "}
-            .insight-desc{margin-top:4px;font-size:12px;font-weight:500;color:#858585}
-            .period-compare{margin-top:10px;border:1px solid #E7E9ED;border-radius:10px;background:#FBFCFD;padding:9px 13px}
-            .period-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-            .period-heading{font-size:13px;font-weight:800;letter-spacing:.5px;color:#5D6774}
-            .period-reference{font-size:12px;color:#7A8490}
-            .period-metrics{display:grid;grid-template-columns:1fr 1fr 1.65fr;gap:12px}
-            .period-metric{display:flex;flex-direction:column;gap:2px;border-right:1px solid #E6E9EF;padding-right:9px;min-width:0}
-            .period-metric:last-child{border-right:0}
-            .period-metric span{font-size:11px;letter-spacing:.4px;font-weight:750;color:#747D88}
-            .period-metric strong{font-size:21px;font-weight:800;color:#252525;line-height:1.2}
-            .period-metric small{font-size:11px;color:#838B96;line-height:1.25}
-            .chart-wrap{flex:1;min-height:0;margin-top:5px;width:100%;display:flex;align-items:center;justify-content:center}
+            .insights{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px;width:100%;align-items:stretch}
+            .insight-card{min-width:0;padding:7px 8px;border:1px solid #EEEEEE;border-radius:8px;background:#FAFAFA;overflow:hidden}
+            .insight-label{font-size:11px;font-weight:700;letter-spacing:.2px;color:#777777;line-height:1.15}
+            .insight-value{margin-top:3px;font-size:20px;line-height:1.1;font-weight:800;white-space:nowrap;color:" & _CorTexto & "}
+            .insight-desc{margin-top:4px;font-size:10px;font-weight:500;color:#858585;line-height:1.15}
+            .insight-note{font-size:10px;color:#89919B;margin-top:4px;text-align:right}
+            .chart-wrap{flex:1;min-height:0;margin-top:2px;width:100%;display:flex;align-items:center;justify-content:center}
             .chart-wrap svg{width:100%;height:100%;display:block}
             .month-hover .month-tooltip{opacity:0;pointer-events:none;transition:opacity .12s ease}
             .month-hover .hover-guide{opacity:0;pointer-events:none;transition:opacity .12s ease}
@@ -736,7 +709,7 @@ RETURN
             <div class='section-title'>Histórico dos indicadores</div>
             <div class='title'>Percentuais de Atingimentos</div>
             <div class='subtitle'>Atingimentos dos indicadores por mês e ano</div>
-            <div class='legend'>" & _Legenda & "</div>" & _Insights & _ComparativoPeriodosHTML &
+            <div class='legend'>" & _Legenda & "</div>" & _Insights &
         "</div>
         <div class='chart-wrap'>
             <svg viewBox='0 0 " & FORMAT ( _W, "0", "en-US" ) & " " & FORMAT ( _SvgH, "0", "en-US" ) &
