@@ -1,0 +1,111 @@
+ICG — Resumo consolidado das premissas antigas e novas
+O ICG (Índice de Consistência Gerencial) está passando de um modelo de avaliação de resultado e indicadores gerenciais para um modelo que avalia resultado acumulado e frequência de atingimento das metas.
+1. Comparativo entre os modelos
+Premissa	Modelo antigo	Novo modelo
+Objetivo	Avaliar desempenho e consistência gerencial	Avaliar entrega acumulada e recorrência
+Período	Acumulado do ano (YTD)	Últimos 12 meses
+Matriz	Nine-Box (9 quadrantes)	Matriz de 4 quadrantes
+Eixo X	Resultado — 75%	Resultado acumulado
+Eixo Y	Consistência gerencial — 25%	Recorrência do atingimento
+Indicadores do resultado	ROB Crédito, ROB Não Crédito, TPV e Faturamento Líquido	ROB Crédito, ROB Não Crédito, TPV e POBJ
+Indicadores de consistência	BSC, EncantaBra e Discricionário, conforme cargo	Mesmos quatro indicadores do resultado
+Critério de consistência	Indicadores gerenciais ponderados	Frequência mensal de atingimento ≥100%
+Limitação	Nine-Box com limitador de 100%; ICG final sem limitador	Pontuação anual de até 1,50 e mensal até 1
+Pesos	Diferenciados por indicador e cargo	Recorrência com 25% por indicador
+Público	GC, AG, GR e GG	Mantido, sujeito à validação dos pesos por cargo
+
+2. Premissas do modelo antigo
+Eixo Resultado (75 pontos): resultado acumulado YTD, com pesos específicos para cada indicador.
+\[
+A_i=\frac{\sum Realizado_i}{\sum Orçado_i}
+\]
+
+Eixo Consistência (25 pontos): avaliação por BSC, EncantaBra e Discricionário, respeitando as regras de cada cargo.
+
+A pontuação utilizada na Nine-Box aplicava limitador de 100% por indicador. Já o ICG final não aplicava esse limitador, permitindo reconhecer superações de metas.
+
+Na última revisão, incluímos Faturamento Líquido com peso de 15%, reduzindo cinco pontos percentuais dos outros três indicadores de Resultado. A distribuição final por cargo ainda precisava de conciliação.
+
+Também definimos acompanhamento mensal, evolução dos quadrantes, identificação de profissionais que subiram, mantiveram ou desceram, tratamento para novos gestores e orientação gerencial (guidance).
+3. Premissas do novo modelo
+Eixo X — Resultado acumulado (12 meses)
+Avalia o atingimento acumulado de cada indicador, calculado pela soma dos realizados dividida pela soma dos orçados no período.
+Atingimento acumulado	Pontuação
+Até 79,99%	0,00
+80% a 94,99%	0,50
+95% a 99,99%	0,75
+100% a 114,99%	1,00
+115% a 129,99%	1,25
+A partir de 130%	1,50
+
+O resultado do eixo será a média ponderada das pontuações, respeitando os pesos dos indicadores. Se esses pesos somarem 100%, a pontuação final do eixo estará entre 0 e 1,50.
+Eixo Y — Consistência dos resultados (12 meses)
+A regra original da nova proposta utilizava pontuações parciais de 0, 0,25, 0,50, 0,75 e 1.
+
+Após nossa última decisão, essa premissa foi substituída. Somente o atingimento efetivo de 100% ou mais contará como entrega consistente.
+Atingimento mensal	Pontuação
+Abaixo de 100%	0
+Igual ou superior a 100%	1
+
+Todos os quatro indicadores terão peso igual de 25%.
+\[
+C_m=\frac{I_{Crédito}+I_{NãoCrédito}+I_{TPV}+I_{POBJ}}{4}
+\]
+
+A consistência dos 12 meses será:
+\[
+C_{12M}=\frac{\sum_{m=1}^{12}C_m}{12}
+\]
+
+O resultado estará entre 0% e 100%. Dessa forma, um mês pode contribuir parcialmente quando apenas alguns indicadores atingirem a meta, mas cada indicador individualmente terá pontuação binária.
+4. Nova classificação dos quadrantes
+RECORRÊNCIA DE ATINGIMENTO ↑
+Resultado a recuperar
+
+Alta recorrência, porém acumulado inferior ao esperado.
+
+
+Resultado sustentado
+
+Bom resultado acumulado e alta frequência de atingimento.
+
+
+Resultado em recuperação
+
+Resultado acumulado baixo e pouca recorrência.
+
+
+Resultado oscilante
+
+Bom acumulado, mas dependente de entregas menos frequentes.
+
+
+
+RESULTADO ACUMULADO →
+
+A classificação passa a observar a combinação dos dois eixos, e não somente a pontuação de recorrência.
+5. Premissas que permanecem
+- Avaliação individual por profissional e comparabilidade entre funções.
+- Acompanhamento da evolução de desempenho ao longo dos meses.
+- Comparação dos quadrantes, identificando subidas, quedas e permanências.
+- Identificação dos profissionais de destaque e daqueles que necessitam de acompanhamento.
+- Transparência dos cálculos, indicadores, pesos, faixas e classificações.
+- Tratamento específico de profissionais novos, períodos incompletos e ausência de metas válidas.
+6. Pontos que ainda precisam ser definidos
+Tema	Definição pendente
+Pesos do Resultado	Confirmar pesos dos quatro indicadores por cargo
+POBJ	Confirmar se substitui o Faturamento Líquido ou representa outro indicador
+Corte do Resultado	Definir pontuação mínima para resultado esperado
+Corte da Consistência	Definir percentual de recorrência considerado alto
+Meses incompletos	Definir critérios de elegibilidade e denominador
+ICG final	Decidir se haverá índice numérico consolidado ou apenas classificação dos eixos
+Metas específicas	Validar indicadores com regras especiais, metas nulas ou inversão de direção
+
+7. Principal mudança conceitual
+Modelo antigo: o profissional entrega resultado e apresenta bom desempenho nos indicadores gerenciais?
+
+Novo modelo: o profissional entrega resultado e consegue repetir o atingimento das metas ao longo do tempo?
+
+A premissa fundamental agora é que resultados excepcionais podem elevar o acumulado, mas não compensam meses sem atingimento no eixo de recorrência.
+
+Essa separação é o que permitirá distinguir um profissional de resultado sustentado de outro que atinge o mesmo acumulado por meio de entregas pontuais.
