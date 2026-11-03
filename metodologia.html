@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Metodologia do Programa | Portal PJ</title>
+<meta name="description" content="Metodologia do programa ICG / 4 Box: indicadores, pesos, scores, eixos e interpretação dos resultados.">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="../assets/css/global.css" rel="stylesheet">
+<link href="../assets/css/methodology.css" rel="stylesheet">
+</head>
+<body data-base="../" class="methodology-page">
+<header id="app-header">
+</header>
+<div id="app-search">
+</div>
+<main id="conteudo">
+<div class="page-hero">
+<div class="container">
+<a class="eyebrow" href="resultados.html">Meus resultados / Metodologia</a>
+<h1 class="mt-3">Metodologia do Programa</h1>
+<p class="lead-copy">Referência para interpretação dos resultados, composição dos scores, posicionamento na matriz 4 Box e cálculo do Índice de Consistência Gerencial.</p>
+</div>
+</div>
+<div class="container methodology-main">
+<nav aria-label="Nesta página" class="methodology-flow">
+<a class="btn-ghost" href="#sec-01">01 · Visão geral</a>
+<a class="btn-ghost" href="#sec-02">02 · Cargos e pesos</a>
+<a class="btn-ghost" href="#sec-03">03 · Como o atingimento é calculado</a>
+<a class="btn-ghost" href="#sec-04">04 · Regra de pontuação da 4 Box</a>
+<a class="btn-ghost" href="#sec-05">05 · Eixos da 4 Box</a>
+<a class="btn-ghost" href="#sec-06">06 · Como são definidos os limites dos eixos</a>
+<a class="btn-ghost" href="#sec-07">07 · Matriz 4 Box</a>
+<a class="btn-ghost" href="#sec-08">08 · Como interpretar a posição</a>
+<a class="btn-ghost" href="#sec-09">09 · 4 Box × ICG</a>
+<a class="btn-ghost" href="#sec-10">10 · Cálculo do ICG</a>
+<a class="btn-ghost" href="#sec-11">11 · Leituras temporais</a>
+<a class="btn-ghost" href="#sec-12">12 · Como interpretar o dashboard</a>
+<a class="btn-ghost" href="#sec-13">13 · Indicadores de contexto</a>
+<a class="btn-ghost" href="#sec-premissas" hidden>Premissas metodológicas</a>
+<a class="btn-ghost" href="#sec-14">14 · Glossário</a>
+</nav>
+<section id="sec-01" aria-labelledby="title-1">
+<span class="eyebrow">01 / Metodologia</span>
+<h2 id="title-1">Visão geral</h2>
+<div class="methodology-grid ">
+<article class="card-premium methodology-card">
+<h3>Resultado</h3>
+<p>Consolida o atingimento acumulado de todos os indicadores aplicáveis, limitando a contribuição de cada um ao seu peso máximo.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>Consistência</h3>
+<p>Soma a recorrência mensal de cada indicador, ponderada pelo seu peso: a proporção de meses com atingimento acima de 100% da meta.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>ICG</h3>
+<p>Consolida os indicadores ponderados conforme o nível funcional, considerando integralmente o atingimento obtido.</p>
+</article>
+</div>
+<div class="methodology-flow" aria-label="Etapas de leitura">
+<span class="methodology-badge">Indicadores</span> <span aria-hidden="true">→</span> <span class="methodology-badge">Atingimento</span> <span aria-hidden="true">→</span> <span class="methodology-badge">Pesos</span> <span aria-hidden="true">→</span> <span class="methodology-badge">Scores</span> <span aria-hidden="true">→</span> <span class="methodology-badge">Resultado + Consistência</span> <span aria-hidden="true">→</span> <span class="methodology-badge">4 Box</span> <span aria-hidden="true">→</span> <span class="methodology-badge">ICG</span>
+</div>
+<div class="methodology-note">4 Box e ICG são duas leituras dos indicadores ponderados. O ICG é calculado diretamente pelos indicadores, independentemente do quadrante.</div>
+</section>
+<section id="sec-02" aria-labelledby="title-2">
+<span class="eyebrow">02 / Metodologia</span>
+<h2 id="title-2">Cargos e pesos</h2>
+<p>O nível funcional determina os indicadores aplicáveis e seus pesos. Todos compõem os dois eixos, cada um com máximo de 100 pontos. Selecione um cargo para atualizar o exemplo de ICG e destacar os pesos.</p>
+<div class="filters" role="group" aria-label="Selecionar cargo">
+<button type="button" class="filter-btn active" data-methodology-role="GC" aria-pressed="true">GC · Gerente de Conta</button>
+<button type="button" class="filter-btn" data-methodology-role="AG" aria-pressed="false">AG · Gerente de Agência</button>
+<button type="button" class="filter-btn" data-methodology-role="GR" aria-pressed="false">GR · Gerente Regional</button>
+<button type="button" class="filter-btn" data-methodology-role="GG" aria-pressed="false">GG · Gerente de Gestão</button>
+</div>
+<div class="methodology-table-wrap" role="region" aria-label="Pesos por cargo">
+<table class="methodology-table">
+<caption class="visually-hidden">Pesos dos indicadores por nível funcional</caption>
+<thead>
+<tr>
+<th scope="col">Indicador</th>
+<th scope="col" data-role-column="GC">GC</th>
+<th scope="col" data-role-column="AG">AG</th>
+<th scope="col" data-role-column="GR">GR</th>
+<th scope="col" data-role-column="GG">GG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">ROB Crédito</th>
+<td data-role-column="GC">25%</td>
+<td data-role-column="AG">25%</td>
+<td data-role-column="GR">20%</td>
+<td data-role-column="GG">25%</td>
+</tr>
+<tr>
+<th scope="row">ROB Não Crédito</th>
+<td data-role-column="GC">20%</td>
+<td data-role-column="AG">15%</td>
+<td data-role-column="GR">15%</td>
+<td data-role-column="GG">15%</td>
+</tr>
+<tr>
+<th scope="row">TPV</th>
+<td data-role-column="GC">15%</td>
+<td data-role-column="AG">15%</td>
+<td data-role-column="GR">20%</td>
+<td data-role-column="GG">15%</td>
+</tr>
+<tr>
+<th scope="row">Faturamento Líquido</th>
+<td data-role-column="GC">15%</td>
+<td data-role-column="AG">15%</td>
+<td data-role-column="GR">15%</td>
+<td data-role-column="GG">15%</td>
+</tr>
+<tr>
+<th scope="row">BSC</th>
+<td data-role-column="GC">15%</td>
+<td data-role-column="AG">15%</td>
+<td data-role-column="GR">10%</td>
+<td data-role-column="GG">15%</td>
+</tr>
+<tr>
+<th scope="row">EncantaBra</th>
+<td data-role-column="GC">10%</td>
+<td data-role-column="AG">10%</td>
+<td data-role-column="GR">10%</td>
+<td data-role-column="GG">10%</td>
+</tr>
+<tr>
+<th scope="row">Discricionário</th>
+<td data-role-column="GC">Não aplicável</td>
+<td data-role-column="AG">5%</td>
+<td data-role-column="GR">10%</td>
+<td data-role-column="GG">5%</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<th scope="row">Soma dos pesos</th>
+<td data-role-column="GC">100%</td>
+<td data-role-column="AG">100%</td>
+<td data-role-column="GR">100%</td>
+<td data-role-column="GG">100%</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<div class="methodology-note">
+<strong>Pesos por nível funcional:</strong> os indicadores totalizam 100% para todos os cargos. GC possui 6 indicadores aplicáveis; AG, GR e GG possuem 7.</div>
+</section>
+<section id="sec-03" aria-labelledby="title-3">
+<span class="eyebrow">03 / Metodologia</span>
+<h2 id="title-3">Como o atingimento é calculado</h2>
+<div class="card-premium methodology-card methodology-formula">Atingimento = Realizado / Meta</div>
+<div class="methodology-note">O quociente é exibido em percentual: realizado 115,4 e meta 100 resultam em 115,4%.</div>
+<div class="card-premium methodology-card mt-4 mb-4">
+<h3>Atingimento acumulado · YTD e últimos 12 meses</h3>
+<p class="methodology-formula">Atingimento acumulado = Soma do realizado no período / Soma da meta ou do orçado no mesmo período</p>
+<p>Nos dois períodos avaliados, o cálculo considera a soma dos resultados realizados dividida pela soma das metas ou dos valores orçados correspondentes. No YTD, são considerados os meses de janeiro até o período selecionado; nos últimos 12 meses, os meses que compõem a janela móvel. O acumulado é calculado pela razão entre essas somas, e não pela média dos percentuais de atingimento mensais.</p>
+</div>
+<div class="methodology-grid ">
+<article class="card-premium methodology-card">
+<h3>Mensal · diagnóstico de tendência</h3>
+<p>Representa o desempenho isolado de cada mês e é utilizado principalmente para leitura de tendência.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>YTD · acumulado no ano</h3>
+<p>YTD significa Year to Date: acumulado do início do ano até a última atualização de GDAD e POBJ. Essa leitura reúne os resultados de janeiro até essa atualização para mostrar o desempenho acumulado no ano.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>Últimos 12 meses · sustentabilidade</h3>
+<p>Representa uma janela móvel de desempenho e permite analisar sustentabilidade, estabilidade e efeitos de sazonalidade.</p>
+</article>
+</div>
+</section>
+<section id="sec-04" aria-labelledby="title-4">
+<span class="eyebrow">04 / Metodologia</span>
+<h2 id="title-4">Regra de pontuação da 4 Box</h2>
+<div class="methodology-grid two">
+<article class="card-premium methodology-card"><h3>Resultado acumulado limitado</h3><p class="methodology-formula">Resultado = Σ [MIN(Atingimento acumulado, 100%) × Peso]</p><p>Todos os indicadores aplicáveis participam da soma. O percentual é convertido em fator e o peso é usado em pontos: 115,4% de atingimento e peso 25 contribuem com 25 pontos; 80% e peso 25 contribuem com 20 pontos.</p></article>
+<article class="card-premium methodology-card"><h3>Recorrência mensal ponderada</h3><p class="methodology-formula">Recorrência = Meses acima de 100% da meta / Total de meses do período<br>Consistência = Σ (Recorrência × Peso)</p><p>Calcule a recorrência de cada indicador e multiplique pelo seu peso. Exemplo: 8 de 10 meses acima de 100%, com peso 25, contribuem com 0,80 × 25 = 20 pontos. Um mês exatamente em 100% não entra na contagem de meses acima da meta.</p></article>
+</div><div class="methodology-note">Use o mesmo período nos dois eixos: acumulado e meses do YTD ou da janela de 12 meses. Os exemplos pressupõem metas e atingimentos disponíveis para todos os meses do período.</div>
+</section>
+<section id="sec-05" aria-labelledby="title-5">
+<span class="eyebrow">05 / Metodologia</span>
+<h2 id="title-5">Eixos da 4 Box</h2>
+<p>Os dois eixos usam todos os indicadores aplicáveis ao cargo. Como os pesos somam 100%, cada eixo tem máximo de 100 pontos.</p>
+<div class="methodology-grid two">
+<article class="card-premium methodology-card"><span class="eyebrow">Eixo X · horizontal</span><h3>Resultado</h3><p>Consolidação dos atingimentos acumulados, com a contribuição de cada indicador limitada ao seu peso.</p><div class="axis-level"><span class="axis-dot low" aria-hidden="true"></span><strong>Baixo</strong><span>Abaixo de 70 pontos</span></div><div class="axis-level"><span class="axis-dot high" aria-hidden="true"></span><strong>Alto</strong><span>A partir de 70 pontos</span></div></article>
+<article class="card-premium methodology-card"><span class="eyebrow">Eixo Y · vertical</span><h3>Consistência</h3><p>Soma das recorrências mensais de todos os indicadores, multiplicadas pelos respectivos pesos.</p><div class="axis-level"><span class="axis-dot low" aria-hidden="true"></span><strong>Baixa</strong><span>Até 70 pontos</span></div><div class="axis-level"><span class="axis-dot high" aria-hidden="true"></span><strong>Alta</strong><span>Acima de 70 pontos</span></div></article>
+</div>
+</section>
+<section id="sec-06" aria-labelledby="title-6">
+<span class="eyebrow">06 / Metodologia</span>
+<h2 id="title-6">Como são definidos os limites dos eixos</h2>
+<div class="card-premium methodology-card methodology-formula">Corte fixo: 70 pontos em cada eixo</div><p class="mt-3">O corte é o mesmo para todos os cargos. O peso de cada indicador muda conforme o nível funcional; a regra de classificação permanece a mesma.</p><div id="methodology-cuts" class="methodology-grid two mt-3" aria-live="polite"></div>
+</section>
+<section id="sec-07" aria-labelledby="title-7">
+<span class="eyebrow">07 / Metodologia</span>
+<h2 id="title-7">Matriz 4 Box</h2>
+<p>Resultado acumulado limitado × recorrência mensal ponderada.</p>
+<div class="four-matrix"><div class="four-axis-y" aria-label="Eixo Consistência: cresce de baixo para cima"><span>Consistência (Y)</span><span class="four-axis-line" aria-hidden="true"></span></div>
+<div class="four-scale-y" aria-label="Faixas de Consistência"><span>Alta</span><span>Baixa</span></div><div class="four-box" aria-label="Matriz 4 Box, organizada da linha superior para a inferior"><article class="four-cell recover"><span class="quadrant-number">Quadrante 2</span><h3>Resultado a Recuperar</h3><p>Alta consistência, porém resultado acumulado abaixo de 70 pontos.</p></article>
+<article class="four-cell positive"><span class="quadrant-number">Quadrante 4</span><h3>Resultado Sustentado</h3><p>Resultado a partir de 70 pontos e consistência acima de 70 pontos.</p></article>
+<article class="four-cell critical"><span class="quadrant-number">Quadrante 1</span><h3>Resultado em Recuperação</h3><p>Resultado abaixo de 70 pontos e consistência até 70 pontos.</p></article>
+<article class="four-cell "><span class="quadrant-number">Quadrante 3</span><h3>Resultado Oscilante</h3><p>Resultado a partir de 70 pontos, mas consistência até 70 pontos.</p></article></div>
+<div class="four-scale-x" aria-label="Faixas de Resultado"><span>Baixo Resultado</span><span>Alto Resultado</span></div><div class="four-axis-x" aria-label="Eixo Resultado: cresce da esquerda para a direita"><span>Resultado (X)</span><span class="four-axis-line" aria-hidden="true"></span></div></div>
+</section>
+<section id="sec-08" aria-labelledby="title-8">
+<span class="eyebrow">08 / Metodologia</span>
+<h2 id="title-8">Como interpretar a posição</h2>
+<div class="methodology-grid"><article class="card-premium methodology-card"><h3>Resultado · 74,5 pts</h3><p><span class="methodology-badge">Alto</span><br>Atingiu o corte de 70 pontos.</p></article><article class="card-premium methodology-card"><h3>Consistência · 65 pts</h3><p><span class="methodology-badge">Baixa</span><br>Recorrência mensal ponderada abaixo de 70 pontos.</p></article><article class="card-premium methodology-card"><h3>→ Quadrante 3</h3><p><strong>Resultado Oscilante</strong></p></article></div><div class="methodology-note">Cruze as classificações dos dois eixos para encontrar o quadrante. Os scores acima são ilustrativos.</div>
+</section>
+<section id="sec-09" aria-labelledby="title-9">
+<span class="eyebrow">09 / Metodologia</span>
+<h2 id="title-9">4 Box × ICG</h2>
+<div class="methodology-grid two">
+<article class="card-premium methodology-card">
+<h3>4 Box</h3>
+<p>
+<strong>Finalidade:</strong> posicionamento gerencial.<br>
+<strong>Resultado:</strong> Σ [MIN(Atingimento acumulado, 100%) × Peso].<br>
+<strong>Consistência:</strong> Σ (Recorrência mensal acima de 100% × Peso).<br>
+<strong>Regra:</strong> todos os indicadores aplicáveis nos dois eixos, com corte de 70 pontos.<br>
+<strong>Saída:</strong> quadrante.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>ICG</h3>
+<p>
+<strong>Finalidade:</strong> pontuação consolidada de performance.<br>
+<strong>Fórmula:</strong> Atingimento × Peso.<br>
+<strong>Regra:</strong> sem teto de 100%.<br>
+<strong>Saída:</strong> pontuação.</p>
+</article>
+</div>
+<div class="methodology-note">A 4 Box mostra onde o profissional está em Resultado × Consistência. O ICG mostra quanto ele efetivamente entregou considerando os pesos dos indicadores.</div>
+</section>
+<section id="sec-10" aria-labelledby="title-10">
+<span class="eyebrow">10 / Metodologia</span>
+<h2 id="title-10">Cálculo do ICG</h2>
+<div class="card-premium methodology-card methodology-formula">Pontos do indicador = Atingimento YTD × Peso<br>ICG final = Soma dos pontos de todos os indicadores aplicáveis</div>
+<p class="mt-3">Exemplo ilustrativo para <strong data-role-label>GC</strong>. Os atingimentos abaixo não representam dados reais. Valores acima de 100% continuam gerando pontos adicionais no ICG.</p>
+<div class="methodology-table-wrap" role="region" aria-label="Exemplo de cálculo do ICG">
+<table class="methodology-table">
+<caption class="visually-hidden">Exemplo ilustrativo de ICG conforme o cargo selecionado</caption>
+<thead>
+<tr>
+<th scope="col">Indicador</th>
+<th scope="col">Atingimento YTD</th>
+<th scope="col">Peso</th>
+<th scope="col">Pontos</th>
+</tr>
+</thead>
+<tbody id="icg-example">
+</tbody>
+<tfoot>
+<tr>
+<th scope="row" colspan="3">ICG ilustrativo</th>
+<td id="icg-total" aria-live="polite">
+</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</section>
+<section id="sec-11" aria-labelledby="title-11">
+<span class="eyebrow">11 / Metodologia</span>
+<h2 id="title-11">Leituras temporais</h2>
+<div class="methodology-grid ">
+<article class="card-premium methodology-card">
+<h3>YTD</h3>
+<p>Mostra a performance acumulada no ano e determina a posição oficial do período.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>Últimos 12 meses</h3>
+<p>Mostra a performance em uma janela móvel, ajudando a avaliar sustentabilidade e reduzir efeitos de sazonalidade.</p>
+</article>
+<article class="card-premium methodology-card">
+<h3>Histórico mensal</h3>
+<p>Mostra a evolução mês a mês e permite identificar recuperação, estabilidade, deterioração e volatilidade.</p>
+</article>
+</div>
+<div class="methodology-note">Posição atual mostra onde o profissional está. Histórico mostra como ele chegou até lá.</div>
+</section>
+<section id="sec-12" aria-labelledby="title-12">
+<span class="eyebrow">12 / Metodologia</span>
+<h2 id="title-12">Como interpretar o dashboard</h2>
+<p>Ordem recomendada de leitura para o dashboard do programa, quando disponível. Visão Geral reúne os resultados; Performance detalha as contribuições; Históricos explica a trajetória; Talentos apoia a leitura dos quadrantes e o desenvolvimento.</p>
+<div class="methodology-note">As capturas do guia abaixo são da versão anterior do dashboard. Para os quadrantes e as regras atuais da 4 Box, consulte as seções 4 a 8 desta página.</div>
+<ol class="reading-journey">
+<li>
+<div>
+<h3>Filtros e navegação de páginas</h3>
+<p>Use o menu à esquerda para alternar entre as páginas e os filtros para definir cargo, segmento, regional, agência e funcionário. Os filtros delimitam os dados exibidos nas análises do dashboard.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Identificação do profissional</h3>
+<p>Após selecionar os filtros e o funcionário, confira no cabeçalho as informações do profissional, como cargo, tempo na função, agência e regional. Esse título identifica a pessoa a quem os resultados exibidos se referem.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Indicadores de desempenho</h3>
+<p>Comece avaliando atingimento, peso e contribuição de cada indicador.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Pontuação ICG</h3>
+<p>Observe a pontuação consolidada do período.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>4 Box YTD</h3>
+<p>Verifique o posicionamento oficial no ano.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>4 Box · 12 meses</h3>
+<p>Compare com a posição em janela móvel para avaliar sustentabilidade.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Scores dos eixos</h3>
+<p>Entenda quais componentes levaram ao posicionamento.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Históricos</h3>
+<p>Analise tendência, estabilidade e comportamento dos indicadores.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Perfil de competências</h3>
+<p>Observe pontos fortes e oportunidades no perfil de competências.</p>
+</div>
+</li>
+<li>
+<div>
+<h3>Guidance</h3>
+<p>Observe a posição na 4 Box dos últimos 12 meses e use o guidance do quadrante como apoio ao desenvolvimento gerencial.</p>
+</div>
+</li>
+</ol>
+</section>
+<section id="sec-13" aria-labelledby="title-13">
+<span class="eyebrow">13 / Metodologia</span>
+<h2 id="title-13">Indicadores de contexto</h2>
+<div class="methodology-note methodology-note-emphasis">Os indicadores de <strong>RAR</strong>, <strong>Perda Esperada Recorrente</strong> e <strong>PDD / Carteira</strong> são utilizados, neste momento, para <strong>avaliação complementar</strong> dos resultados. Eles oferecem contexto adicional para a análise e <strong>não compõem o cálculo do Índice de Consistência Gerencial (ICG)</strong>.</div>
+</section>
+<section id="sec-premissas" aria-labelledby="title-premissas" hidden>
+<span class="eyebrow">Metodologia</span>
+<h2 id="title-premissas">Premissas metodológicas</h2>
+<div class="card-premium methodology-card">
+<ul class="mb-0">
+<li class="mb-2">O cargo determina os indicadores aplicáveis e respectivos pesos.</li>
+<li class="mb-2">Todos os indicadores aplicáveis compõem os dois eixos.</li>
+<li class="mb-2">O Discricionário não se aplica ao GC.</li>
+<li class="mb-2">O eixo Resultado limita a contribuição de cada indicador ao seu peso.</li>
+<li class="mb-2">O ICG considera integralmente o atingimento.</li>
+<li class="mb-2">O posicionamento oficial considera o YTD.</li>
+<li class="mb-2">O corte de classificação é de 70 pontos em cada eixo.</li>
+<li class="mb-2">Cada eixo tem máximo de 100 pontos em todos os cargos.</li>
+<li class="mb-2">A visão mensal é complementar e utilizada para análise de tendência.</li>
+<li class="mb-2">A visão de últimos 12 meses permite analisar sustentabilidade da performance.</li>
+</ul>
+</div>
+</section>
+<section id="sec-14" aria-labelledby="title-14">
+<span class="eyebrow">14 / Metodologia</span>
+<h2 id="title-14">Glossário</h2>
+<div class="card-premium methodology-glossary">
+<details>
+<summary>ICG</summary>
+<p>Índice de Consistência Gerencial.</p>
+</details>
+<details>
+<summary>4 Box</summary>
+<p>Matriz de posicionamento baseada no cruzamento entre Resultado e Consistência.</p>
+</details>
+<details>
+<summary>YTD</summary>
+<p>Year to Date — acumulado do início do ano até o período selecionado.</p>
+</details>
+<details>
+<summary>TPV</summary>
+<p>Volume de contas a pagar e a receber, também chamado de Cash. Fonte: POBJ.</p>
+</details>
+<details>
+<summary>ROB Crédito</summary>
+<p>Composto pelo resultado realizado e pelo orçado das linhas de crédito em dia (aplicação). Fonte: GDAD.</p>
+</details>
+<details>
+<summary>ROB Não Crédito</summary>
+<p>Composto pelas demais linhas de composição do ROB, considerando o resultado das linhas de receita de serviços, ligadas e captação. Fonte: GDAD.</p>
+</details>
+<details>
+<summary>Faturamento Líquido</summary>
+<p>Composto pela linha de Faturamento Líquido. Fonte: GDAD.</p>
+</details>
+<details>
+<summary>BSC</summary>
+<p>Atingimento da pontuação mensal do extrato. Fonte: POBJ.</p>
+</details>
+<details>
+<summary>EncantaBra</summary>
+<p>Obtido pelo realizado do indicador EncantaBra. Fonte: POBJ.</p>
+</details>
+<details>
+<summary>Discricionário</summary>
+<p>Indicador aplicável a determinados níveis funcionais, considerado nos dois eixos.</p>
+</details>
+</div>
+</section>
+<noscript>
+<p class="methodology-note">Ative o JavaScript para atualizar o exemplo de ICG conforme o cargo. A tabela de pesos e as regras permanecem disponíveis.</p>
+</noscript>
+</div>
+</main>
+<dialog id="dashboard-guide" class="dashboard-guide" aria-labelledby="dashboard-guide-title" aria-describedby="dashboard-guide-description">
+<div class="dashboard-guide-content">
+<div class="axis-heading">
+<h2 id="dashboard-guide-title">Trecho do dashboard</h2>
+<button type="button" class="btn-ghost" data-close-guide autofocus>Fechar ×</button>
+</div>
+<div class="methodology-note mb-3"><strong>O que observar</strong><p id="dashboard-guide-description" class="mb-0 mt-1"></p></div>
+<div class="dashboard-guide-toolbar">
+<p id="dashboard-guide-caption">A área destacada mostra onde encontrar este item no dashboard.</p>
+<button type="button" class="btn-ghost" data-toggle-guide-zoom aria-pressed="false" aria-controls="dashboard-guide-viewport" disabled>Ampliar trecho</button>
+</div>
+<p role="status">Carregando imagem…</p>
+<div id="dashboard-guide-viewport" class="dashboard-guide-crop" aria-describedby="dashboard-guide-caption" hidden><img alt="" /><span class="dashboard-guide-highlight" aria-hidden="true"></span></div>
+</div>
+</dialog>
+<footer id="app-footer">
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+</script>
+<script type="module" src="../assets/js/app.js">
+</script>
+<script type="module" src="../assets/js/methodology.js">
+</script>
+<script type="module" src="../assets/js/methodology-dashboard.js"></script>
+</body>
+</html>
